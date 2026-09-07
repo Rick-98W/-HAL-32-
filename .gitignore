@@ -1,0 +1,14 @@
+  *.o
+  *.d
+  *.axf
+  *.map
+  *.htm
+  *.lnp
+  *.dep
+  *.crf
+  *.iex
+  *.bak
+  *.uvguix.*
+  *.uvoptx
+  .vscode/
+  .idea
