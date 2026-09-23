@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "dma.h"
+#include "i2c.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
@@ -26,6 +27,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <scheduler.h>
+#include <ICAP_service.h>
 
 /* USER CODE END Includes */
 
@@ -93,11 +95,18 @@ int main(void)
   MX_DMA_Init();
   MX_USART1_UART_Init();
   MX_TIM4_Init();
-  MX_TIM3_Init();
+  MX_TIM9_Init();
+  MX_TIM12_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
 	button_task_init();
 	USART_init();
 	scheduler_init();
+	ICAP_init();
+	OLED_init();
+//	WouoUI_init();
+//	OLED_printf(0, 2, 16, "Powered by Rick");
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -105,6 +114,7 @@ int main(void)
   while (1)
   {
 		scheduler_run();
+		ICAP_update();	
 //		USART_printf("Hola\r\n");
     /* USER CODE END WHILE */
 

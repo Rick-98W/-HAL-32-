@@ -1,7 +1,7 @@
 #ifndef USART_TASK_H
 #define USART_TASK_H
 
-#include "main.h"
+#include "stdint.h"
 
 /* --- Public API --- */
 

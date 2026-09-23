@@ -4,6 +4,6 @@
 #include "main.h"
 
 void button_task_init(void);
-void button_task_run(void);
+void button_proc(void);
 
 #endif

@@ -93,6 +93,6 @@ void button_task_init(void) {
               my_btn_callback);
 }
 
-void button_task_run(void) {
+void button_proc(void) {
     ebtn_process(HAL_GetTick());
 }
