@@ -7,7 +7,7 @@
 void LED_proc(void);
 
 // === 新增：控制接口 ===
-void LED_toggle_phase(uint32_t LEDIndex); // 翻转相位
+void LED_toggle_phase(uint8_t LEDIndex); // 翻转相位
 void LED_save_state(void);                // 存档 (Shift + K2)
 void LED_restore_state(void);             // 读档 (Shift + K3)
 void LED_set_blackout(uint8_t enable);    // 全灭控制 (Shift + K4/K5

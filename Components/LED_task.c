@@ -32,6 +32,11 @@ typedef enum{
     LED_RUNNING
 }LED_State_t;
 
+typedef enum{
+	LED_DMA_CIRCULAR,
+	LED_DMA_NORMAL
+}LED_DMA_State_t;
+
 static LED_State_t s_LEDState = LED_BUILDING;
 	
 static uint32_t s_tableLength = LED_LUT_LENGTH;
@@ -40,7 +45,7 @@ static uint8_t  s_tableReady = 0;
 static uint8_t  s_waveWidth = 8;
 static uint32_t s_DMACounter;
 
-static uint8_t  s_isCirc = 0; //当前DMA指针模式标志位 1为circular 0为normal
+volatile static LED_DMA_State_t s_DMAState = LED_DMA_NORMAL;
 
 /* --- 2. 核心处理函数 --- */
 void LED_soft_breathe(void)
@@ -152,7 +157,7 @@ static HAL_StatusTypeDef LED_hardware_start(void)
 	HAL_NVIC_DisableIRQ(DMA1_Stream6_IRQn);
 	
 	s_LEDState = LED_RUNNING;
-	s_isCirc = 1;
+	s_DMAState = LED_DMA_CIRCULAR;
 	
 	return status;
 }
@@ -160,7 +165,7 @@ static HAL_StatusTypeDef LED_hardware_start(void)
 //重定义DMA multi-Burst的ISR
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	if (htim == &htim4){
-		if (s_isCirc == 0){ //当DMA模式为normal
+		if (s_DMAState == LED_DMA_NORMAL){ //当DMA模式为normal
 			HAL_TIM_DMABurst_WriteStop(&htim4, TIM_DMA_UPDATE);
 			__HAL_DMA_DISABLE(htim4.hdma[TIM_DMA_ID_UPDATE]);
 			// 等待硬件完全清零 EN 位 (防止总线锁死)
@@ -168,7 +173,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 			// 将DMA改回circular
 			htim4.hdma[TIM_DMA_ID_UPDATE]->Instance->CR |= DMA_SxCR_CIRC;
 //			LED_hardware_start();
-			USART_printf("%d\r\n",LED_hardware_start());
+			LED_hardware_start();
 		}
 	}
 }
@@ -199,7 +204,7 @@ void LED_proc(void){
 /* --- 3. 控制接口实现 (供按键与串口调用) --- */
 
 // 翻转相位：在 0.0 和 1.0 之间切换
-void LED_toggle_phase(uint32_t LEDIndex) {
+void LED_toggle_phase(uint8_t LEDIndex) {
 	if (LEDIndex < 6) {
 			s_LEDPhase[LEDIndex] = (s_LEDPhase[LEDIndex] == 0.0f) ? 1.0f : 0.0f;
 	}
@@ -216,10 +221,38 @@ void LED_save_state(void) {
 
 // 读档：让时间倒流回存档点
 void LED_restore_state(void) {
+	// 如果当前是Normal模式，完全重置到Circular状态
+	if (s_DMAState == LED_DMA_NORMAL) {
+		// 1. 完全停止TIM4 PWM和DMA
+		HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_1);
+		HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_2);
+		HAL_TIM_DMABurst_WriteStop(&htim4, TIM_DMA_UPDATE);
+
+		// 2. 禁用DMA并等待
+		__HAL_DMA_DISABLE(htim4.hdma[TIM_DMA_ID_UPDATE]);
+		uint32_t timeout = 100000;
+		while ((htim4.hdma[TIM_DMA_ID_UPDATE]->Instance->CR & DMA_SxCR_EN) != 0U) {
+			if (--timeout == 0) return;  // 超时则放弃本次restore
+		}
+
+		// 3. 清除DMA标志位
+		__HAL_DMA_CLEAR_FLAG(htim4.hdma[TIM_DMA_ID_UPDATE], __HAL_DMA_GET_TC_FLAG_INDEX(htim4.hdma[TIM_DMA_ID_UPDATE]));
+
+		// 4. 恢复Circular模式
+		htim4.hdma[TIM_DMA_ID_UPDATE]->Instance->CR |= DMA_SxCR_CIRC;
+
+		// 5. 重新启动并恢复为circular模式
+		LED_hardware_start();
+
+		// 现在处于安全的Circular状态
+	}
+
+	// 执行正常的restore流程
 	s_breathCounter = s_breathCheckpoint;
 	__HAL_DMA_DISABLE(htim4.hdma[TIM_DMA_ID_UPDATE]);
 	// 等待硬件完全清零 EN 位 (防止总线锁死)
 	while ((htim4.hdma[TIM_DMA_ID_UPDATE]->Instance->CR & DMA_SxCR_EN) != 0U);
+
 	uint32_t totalTransfers = LED_LUT_LENGTH * 2U;
 	// 算出存档时已经搬运的数据个数
 	uint32_t transferred_count = totalTransfers - s_DMACounter;
@@ -234,7 +267,7 @@ void LED_restore_state(void) {
 	__HAL_DMA_ENABLE_IT(htim4.hdma[TIM_DMA_ID_UPDATE], DMA_IT_TC);
 	__HAL_DMA_ENABLE(htim4.hdma[TIM_DMA_ID_UPDATE]);
 	//DMA模式标志位置为normal
-	s_isCirc = 0;
+	s_DMAState = LED_DMA_NORMAL;
 }
 
 // 全灭控制

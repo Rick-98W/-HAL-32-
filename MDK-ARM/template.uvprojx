@@ -952,24 +952,44 @@
               <FilePath>..\Components\ICAP_service.h</FilePath>
             </File>
             <File>
-              <FileName>OLED_task.c</FileName>
+              <FileName>menu_tmpl.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\Components\OLED_task.c</FilePath>
+              <FilePath>..\Components\menu_tmpl.c</FilePath>
             </File>
             <File>
-              <FileName>OLED_task.h</FileName>
+              <FileName>menu_tmpl.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\Components\OLED_task.h</FilePath>
+              <FilePath>..\Components\menu_tmpl.h</FilePath>
             </File>
             <File>
-              <FileName>menu.c</FileName>
+              <FileName>menu_item.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\Components\menu.c</FilePath>
+              <FilePath>..\Components\menu_item.c</FilePath>
             </File>
             <File>
-              <FileName>menu.h</FileName>
+              <FileName>menu_item.h</FileName>
               <FileType>5</FileType>
-              <FilePath>..\Components\menu.h</FilePath>
+              <FilePath>..\Components\menu_item.h</FilePath>
+            </File>
+            <File>
+              <FileName>OLED_page.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Components\OLED_page.c</FilePath>
+            </File>
+            <File>
+              <FileName>OLED_page.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Components\OLED_page.h</FilePath>
+            </File>
+            <File>
+              <FileName>OLED_service.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Components\OLED_service.c</FilePath>
+            </File>
+            <File>
+              <FileName>OLED_service.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Components\OLED_service.h</FilePath>
             </File>
           </Files>
         </Group>

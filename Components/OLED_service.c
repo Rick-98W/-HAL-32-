@@ -1,17 +1,26 @@
-#include <OLED_task.h>
+#include <OLED_service.h>
 #include "i2c.h"
 #include "stdio.h"
 #include "stdarg.h"
 #include "OLED.h"
 #include "u8g2.h"
 
-static	u8g2_t I2C_SSD_091;
+static uint8_t  s_oled_refresh_pending = 0;
+static uint32_t s_oled_refresh_due = 0;
+
+static u8g2_t I2C_SSD_091;
+
+static OLED_render_cb_t sfn_renderCallback = NULL;
+
+void OLED_service_register_render_cb(OLED_render_cb_t fn_render) {
+	if (fn_render != NULL) {
+		sfn_renderCallback = fn_render;
+	}
+}
 
 // u8g2 的 GPIO 和延时回调函数
-uint8_t u8g2_gpio_and_delay_STM32(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_ptr)
-{
-  switch(msg)
-  {
+uint8_t u8g2_gpio_and_delay_STM32(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_ptr) {
+  switch(msg) {
     case U8X8_MSG_GPIO_AND_DELAY_INIT:
       // 初始化 GPIO (如果需要，例如 SPI 的 CS, DC, RST 引脚)
       // 对于硬件 I2C，这里通常不需要做什么
@@ -63,21 +72,18 @@ uint8_t u8g2_gpio_and_delay_STM32(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, vo
 }
 
 // u8g2 的硬件 I2C 通信回调函数
-uint8_t u8x8_byte_hw_i2c(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_ptr)
-{
+uint8_t u8x8_byte_hw_i2c(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_ptr) {
   static uint8_t buffer[32]; // u8g2 每次传输最大 32 字节
   static uint8_t buf_idx;
   uint8_t *data;
 
-  switch(msg)
-  {
+  switch(msg) {
     case U8X8_MSG_BYTE_SEND:
       // 原因: u8g2 通常不会一次性发送大量数据，而是分块发送。
       // 这个消息用于将一小块数据 (arg_int 字节) 从 u8g2 内部传递到我们的回调函数。
       // 我们需要将这些数据暂存到本地 buffer 中，等待 START/END_TRANSFER 信号。
       data = (uint8_t *)arg_ptr;
-      while( arg_int > 0 )
-      {
+      while( arg_int > 0 ) {
         buffer[buf_idx++] = *data;
         data++;
         arg_int--;
@@ -104,8 +110,7 @@ uint8_t u8x8_byte_hw_i2c(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_p
       // 这是执行实际 I2C 发送操作的最佳时机。
       // 发送缓冲区中的数据
       // 注意: u8x8_GetI2CAddress(u8x8) 返回的是 7 位地址 * 2 = 8 位地址
-      if (HAL_I2C_Master_Transmit(&hi2c1, u8x8_GetI2CAddress(u8x8), buffer, buf_idx, 100) != HAL_OK)
-      {
+      if (HAL_I2C_Master_Transmit(&hi2c1, u8x8_GetI2CAddress(u8x8), buffer, buf_idx, 100) != HAL_OK) {
         return 0; // 发送失败
       }
       break;
@@ -115,7 +120,27 @@ uint8_t u8x8_byte_hw_i2c(u8x8_t *u8x8, uint8_t msg, uint8_t arg_int, void *arg_p
   return 1;
 }
 
-void OLED_init(){
+void OLED_request_refresh(uint32_t delay_ms) {
+	s_oled_refresh_due = HAL_GetTick() + delay_ms;
+	s_oled_refresh_pending = 1;
+}
+
+void OLED_task_poll(void) {
+	if (!s_oled_refresh_pending) {
+		return;
+	}
+
+	if ((int32_t)(HAL_GetTick() - s_oled_refresh_due) < 0) {
+		return;
+	}
+
+	// 先清除，保证本次只触发一次
+	s_oled_refresh_pending = 0;
+
+	OLED_proc();
+}
+
+void OLED_init() {
 	OLED_Init();
 	
 		// --- U8G2 初始化 ---
@@ -136,12 +161,14 @@ void OLED_init(){
 	u8g2_ClearBuffer(&I2C_SSD_091);
 	// 5. 设置字体
 	u8g2_SetFont(&I2C_SSD_091, u8g2_font_ncenB08_tr);
-	u8g2_DrawButtonUTF8(&I2C_SSD_091, 4, 10, U8G2_BTN_BW1 | U8G2_BTN_SHADOW1, 0, 0, 0, "Powered by Rick");
+	u8g2_DrawStr(&I2C_SSD_091, 0, 8, "GD32HAL DevPlatform");
+	u8g2_DrawButtonUTF8(&I2C_SSD_091, 26, 26, U8G2_BTN_BW1 | U8G2_BTN_SHADOW1, 0, 0, 0, "Powered by Rick");
 	u8g2_SendBuffer(&I2C_SSD_091);
+	OLED_request_refresh(1500);
+	
 }
 
-void OLED_printf(uint8_t x, uint8_t y, uint8_t fontsize, const char *fmt, ...)
-{
+void OLED_printf(uint8_t x, uint8_t y, uint8_t fontsize, const char *fmt, ...) {
 	char temp_buf[24]; 
 	va_list args;
 	va_start(args, fmt);
@@ -153,6 +180,14 @@ void OLED_printf(uint8_t x, uint8_t y, uint8_t fontsize, const char *fmt, ...)
 	OLED_ShowStr(x, y, temp_buf, fontsize);
 }
 
+void *OLED_service_get_u8g2_handle(void) {
+    return (void *)&I2C_SSD_091;
+}
+
+
+
 void OLED_proc(){
-	
+	if (sfn_renderCallback != NULL) {
+		sfn_renderCallback();
+	}
 }

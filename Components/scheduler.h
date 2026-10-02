@@ -4,7 +4,6 @@
 #include <LED_task.h>
 #include <button_task.h>
 #include <USART_task.h>
-#include <OLED_task.h>
 
 void scheduler_init(void);
 void scheduler_run(void);

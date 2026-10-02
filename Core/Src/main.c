@@ -28,6 +28,9 @@
 /* USER CODE BEGIN Includes */
 #include <scheduler.h>
 #include <ICAP_service.h>
+#include <OLED_service.h>
+#include <OLED_page.h>
+#include <menu_item.h>
 
 /* USER CODE END Includes */
 
@@ -104,8 +107,8 @@ int main(void)
 	scheduler_init();
 	ICAP_init();
 	OLED_init();
-//	WouoUI_init();
-//	OLED_printf(0, 2, 16, "Powered by Rick");
+	OLED_page_init();
+	menu_init();
 
   /* USER CODE END 2 */
 
@@ -114,8 +117,8 @@ int main(void)
   while (1)
   {
 		scheduler_run();
-		ICAP_update();	
-//		USART_printf("Hola\r\n");
+//		ICAP_update();
+		OLED_task_poll();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

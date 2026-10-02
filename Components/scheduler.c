@@ -16,7 +16,6 @@ static task_t scheduler_task[] =
 		{LED_proc, 1, 0},
 		{button_proc, 5, 0},
 		{USART_proc, 1, 0},
-		{OLED_proc, 10, 0},
 };
 
 /**
