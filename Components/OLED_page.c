@@ -12,21 +12,26 @@ static bool s_feedbackValid = false;
 const static menuItem_t *sp_currentItem = NULL;
 const static menuItem_t *sp_currentPage = NULL;
 
-void OLED_page_info(){
-	sp_currentItem = menu_get_current_item();
-	sp_currentPage = menu_get_current_page();
-	switch (sp_currentPage->page_ID) {
-		case MAIN_PAGE:
-			break;
-		case LED_PAGE:
-			break;
-		case ADC_PAGE:
-			break;
-		case SYSTEM_PAGE:
-			break;
-		default:
-			break;
+static void OLED_LED_toggle_page_render(u8g2_t *u8g2) {
+	u8g2_DrawStr(u8g2, 0, 8, "LED Toggling...");
+	if (s_feedbackValid) {
+		static const char *feedback[] = {
+				"LED1 toggled",
+				"LED2 toggled",
+				"LED3 toggled",
+				"LED4 toggled",
+				"LED5 toggled",
+				"LED6 toggled"
+		};
+		u8g2_DrawStr(u8g2, 0, 20, feedback[s_feedbackLED]);
+		s_feedbackValid = false;
+		OLED_request_refresh(2000);
 	}
+	u8g2_DrawStr(u8g2, 0, 32, "Press WKUP to exit.");
+}
+
+static void OLED_LOG_page_render(u8g2_t *u8g2) {
+	u8g2_DrawStr(u8g2, 0, 8, "LOG Presenting...");
 }
 
 static void OLED_draw_items(u8g2_t *u8g2, const menuItem_t *page, const menuItem_t *selected) {
@@ -71,6 +76,13 @@ static void OLED_draw_items(u8g2_t *u8g2, const menuItem_t *page, const menuItem
 			item = item->p_next;
 	}
 }
+
+static void OLED_normal_page_render(u8g2_t *u8g2, const menuItem_t *page, const menuItem_t *item) {
+	// 第一行：当前页面名称
+	u8g2_DrawStr(u8g2, 0, 8, page->p_name);
+	// 后面三行：当前页面的 child
+	OLED_draw_items(u8g2, page, item);
+}
 	
 void OLED_page_set_toggle_feedback(uint8_t LEDIndex) {
 	s_feedbackValid = true;
@@ -94,28 +106,18 @@ void OLED_page_render(void) {
 
 	u8g2_ClearBuffer(u8g2);
 
-	if (menu_is_in_LED_toggle()) {
-		u8g2_DrawStr(u8g2, 0, 8, "LED Toggling...");
-		if (s_feedbackValid) {
-			static const char *feedback[] = {
-          "LED1 toggled",
-          "LED2 toggled",
-          "LED3 toggled",
-          "LED4 toggled",
-          "LED5 toggled",
-          "LED6 toggled"
-      };
-			u8g2_DrawStr(u8g2, 0, 20, feedback[s_feedbackLED]);
-			s_feedbackValid = false;
-			OLED_request_refresh(2000);
-		}
-		u8g2_DrawStr(u8g2, 0, 32, "Press WKUP to exit.");
-	}
-	else {
-		// 第一行：当前页面名称
-		u8g2_DrawStr(u8g2, 0, 8, page->p_name);
-		// 后面三行：当前页面的 child
-		OLED_draw_items(u8g2, page, item);
+	switch(menu_get_mode()) {
+		case MENU_MODE_LED_TOGGLE:
+			OLED_LED_toggle_page_render(u8g2);
+			break;
+		case MENU_MODE_LOG:
+			OLED_LOG_page_render(u8g2);
+			break;
+		case MENU_MODE_NORMAL:
+			OLED_normal_page_render(u8g2, page, item);
+			break;
+		default:
+			break;
 	}
 	
 	u8g2_SendBuffer(u8g2);

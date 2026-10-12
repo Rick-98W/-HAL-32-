@@ -138,7 +138,7 @@
           </Flash1>
           <bUseTDR>1</bUseTDR>
           <Flash2>BIN\UL2CM3.DLL</Flash2>
-          <Flash3>"" ()</Flash3>
+          <Flash3></Flash3>
           <Flash4></Flash4>
           <pFcarmOut></pFcarmOut>
           <pFcarmGrp></pFcarmGrp>
@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F429xx</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include;../Components;../Packages/ebtn;../Packages/RingBuffer;..\Packages\OLED;..\Packages\u8g2</IncludePath>
+              <IncludePath>../Core/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include;../Components;../Packages/ebtn;../Packages/RingBuffer;../Packages/OLED;../Packages/u8g2</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -403,6 +403,118 @@
               <FileName>gpio.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Core/Src/gpio.c</FilePath>
+            </File>
+            <File>
+              <FileName>adc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Core/Src/adc.c</FilePath>
+              <FileOption>
+                <CommonProperty>
+                  <UseCPPCompiler>2</UseCPPCompiler>
+                  <RVCTCodeConst>0</RVCTCodeConst>
+                  <RVCTZI>0</RVCTZI>
+                  <RVCTOtherData>0</RVCTOtherData>
+                  <ModuleSelection>0</ModuleSelection>
+                  <IncludeInBuild>1</IncludeInBuild>
+                  <AlwaysBuild>2</AlwaysBuild>
+                  <GenerateAssemblyFile>2</GenerateAssemblyFile>
+                  <AssembleAssemblyFile>2</AssembleAssemblyFile>
+                  <PublicsOnly>2</PublicsOnly>
+                  <StopOnExitCode>11</StopOnExitCode>
+                  <CustomArgument></CustomArgument>
+                  <IncludeLibraryModules></IncludeLibraryModules>
+                  <ComprImg>1</ComprImg>
+                </CommonProperty>
+                <FileArmAds>
+                  <Cads>
+                    <interw>2</interw>
+                    <Optim>0</Optim>
+                    <oTime>2</oTime>
+                    <SplitLS>2</SplitLS>
+                    <OneElfS>2</OneElfS>
+                    <Strict>2</Strict>
+                    <EnumInt>2</EnumInt>
+                    <PlainCh>2</PlainCh>
+                    <Ropi>2</Ropi>
+                    <Rwpi>2</Rwpi>
+                    <wLevel>0</wLevel>
+                    <uThumb>2</uThumb>
+                    <uSurpInc>2</uSurpInc>
+                    <uC99>2</uC99>
+                    <uGnu>2</uGnu>
+                    <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>2</v6Lto>
+                    <v6WtE>2</v6WtE>
+                    <v6Rtti>2</v6Rtti>
+                    <VariousControls>
+                      <MiscControls></MiscControls>
+                      <Define></Define>
+                      <Undefine></Undefine>
+                      <IncludePath></IncludePath>
+                    </VariousControls>
+                  </Cads>
+                </FileArmAds>
+              </FileOption>
+            </File>
+            <File>
+              <FileName>dac.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Core/Src/dac.c</FilePath>
+              <FileOption>
+                <CommonProperty>
+                  <UseCPPCompiler>2</UseCPPCompiler>
+                  <RVCTCodeConst>0</RVCTCodeConst>
+                  <RVCTZI>0</RVCTZI>
+                  <RVCTOtherData>0</RVCTOtherData>
+                  <ModuleSelection>0</ModuleSelection>
+                  <IncludeInBuild>1</IncludeInBuild>
+                  <AlwaysBuild>2</AlwaysBuild>
+                  <GenerateAssemblyFile>2</GenerateAssemblyFile>
+                  <AssembleAssemblyFile>2</AssembleAssemblyFile>
+                  <PublicsOnly>2</PublicsOnly>
+                  <StopOnExitCode>11</StopOnExitCode>
+                  <CustomArgument></CustomArgument>
+                  <IncludeLibraryModules></IncludeLibraryModules>
+                  <ComprImg>1</ComprImg>
+                </CommonProperty>
+                <FileArmAds>
+                  <Cads>
+                    <interw>2</interw>
+                    <Optim>0</Optim>
+                    <oTime>2</oTime>
+                    <SplitLS>2</SplitLS>
+                    <OneElfS>2</OneElfS>
+                    <Strict>2</Strict>
+                    <EnumInt>2</EnumInt>
+                    <PlainCh>2</PlainCh>
+                    <Ropi>2</Ropi>
+                    <Rwpi>2</Rwpi>
+                    <wLevel>0</wLevel>
+                    <uThumb>2</uThumb>
+                    <uSurpInc>2</uSurpInc>
+                    <uC99>2</uC99>
+                    <uGnu>2</uGnu>
+                    <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>2</v6Lto>
+                    <v6WtE>2</v6WtE>
+                    <v6Rtti>2</v6Rtti>
+                    <VariousControls>
+                      <MiscControls></MiscControls>
+                      <Define></Define>
+                      <Undefine></Undefine>
+                      <IncludePath></IncludePath>
+                    </VariousControls>
+                  </Cads>
+                </FileArmAds>
+              </FileOption>
             </File>
             <File>
               <FileName>dma.c</FileName>
@@ -593,9 +705,9 @@
           <GroupName>Drivers/STM32F4xx_HAL_Driver</GroupName>
           <Files>
             <File>
-              <FileName>stm32f4xx_hal_i2c.c</FileName>
+              <FileName>stm32f4xx_hal_adc.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c.c</FilePath>
+              <FilePath>../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.c</FilePath>
               <FileOption>
                 <CommonProperty>
                   <UseCPPCompiler>2</UseCPPCompiler>
@@ -649,9 +761,9 @@
               </FileOption>
             </File>
             <File>
-              <FileName>stm32f4xx_hal_i2c_ex.c</FileName>
+              <FileName>stm32f4xx_hal_adc_ex.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c_ex.c</FilePath>
+              <FilePath>../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc_ex.c</FilePath>
               <FileOption>
                 <CommonProperty>
                   <UseCPPCompiler>2</UseCPPCompiler>
@@ -768,6 +880,230 @@
               <FileName>stm32f4xx_hal_exti.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_exti.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32f4xx_hal_dac.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dac.c</FilePath>
+              <FileOption>
+                <CommonProperty>
+                  <UseCPPCompiler>2</UseCPPCompiler>
+                  <RVCTCodeConst>0</RVCTCodeConst>
+                  <RVCTZI>0</RVCTZI>
+                  <RVCTOtherData>0</RVCTOtherData>
+                  <ModuleSelection>0</ModuleSelection>
+                  <IncludeInBuild>1</IncludeInBuild>
+                  <AlwaysBuild>2</AlwaysBuild>
+                  <GenerateAssemblyFile>2</GenerateAssemblyFile>
+                  <AssembleAssemblyFile>2</AssembleAssemblyFile>
+                  <PublicsOnly>2</PublicsOnly>
+                  <StopOnExitCode>11</StopOnExitCode>
+                  <CustomArgument></CustomArgument>
+                  <IncludeLibraryModules></IncludeLibraryModules>
+                  <ComprImg>1</ComprImg>
+                </CommonProperty>
+                <FileArmAds>
+                  <Cads>
+                    <interw>2</interw>
+                    <Optim>0</Optim>
+                    <oTime>2</oTime>
+                    <SplitLS>2</SplitLS>
+                    <OneElfS>2</OneElfS>
+                    <Strict>2</Strict>
+                    <EnumInt>2</EnumInt>
+                    <PlainCh>2</PlainCh>
+                    <Ropi>2</Ropi>
+                    <Rwpi>2</Rwpi>
+                    <wLevel>0</wLevel>
+                    <uThumb>2</uThumb>
+                    <uSurpInc>2</uSurpInc>
+                    <uC99>2</uC99>
+                    <uGnu>2</uGnu>
+                    <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>2</v6Lto>
+                    <v6WtE>2</v6WtE>
+                    <v6Rtti>2</v6Rtti>
+                    <VariousControls>
+                      <MiscControls></MiscControls>
+                      <Define></Define>
+                      <Undefine></Undefine>
+                      <IncludePath></IncludePath>
+                    </VariousControls>
+                  </Cads>
+                </FileArmAds>
+              </FileOption>
+            </File>
+            <File>
+              <FileName>stm32f4xx_hal_dac_ex.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dac_ex.c</FilePath>
+              <FileOption>
+                <CommonProperty>
+                  <UseCPPCompiler>2</UseCPPCompiler>
+                  <RVCTCodeConst>0</RVCTCodeConst>
+                  <RVCTZI>0</RVCTZI>
+                  <RVCTOtherData>0</RVCTOtherData>
+                  <ModuleSelection>0</ModuleSelection>
+                  <IncludeInBuild>1</IncludeInBuild>
+                  <AlwaysBuild>2</AlwaysBuild>
+                  <GenerateAssemblyFile>2</GenerateAssemblyFile>
+                  <AssembleAssemblyFile>2</AssembleAssemblyFile>
+                  <PublicsOnly>2</PublicsOnly>
+                  <StopOnExitCode>11</StopOnExitCode>
+                  <CustomArgument></CustomArgument>
+                  <IncludeLibraryModules></IncludeLibraryModules>
+                  <ComprImg>1</ComprImg>
+                </CommonProperty>
+                <FileArmAds>
+                  <Cads>
+                    <interw>2</interw>
+                    <Optim>0</Optim>
+                    <oTime>2</oTime>
+                    <SplitLS>2</SplitLS>
+                    <OneElfS>2</OneElfS>
+                    <Strict>2</Strict>
+                    <EnumInt>2</EnumInt>
+                    <PlainCh>2</PlainCh>
+                    <Ropi>2</Ropi>
+                    <Rwpi>2</Rwpi>
+                    <wLevel>0</wLevel>
+                    <uThumb>2</uThumb>
+                    <uSurpInc>2</uSurpInc>
+                    <uC99>2</uC99>
+                    <uGnu>2</uGnu>
+                    <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>2</v6Lto>
+                    <v6WtE>2</v6WtE>
+                    <v6Rtti>2</v6Rtti>
+                    <VariousControls>
+                      <MiscControls></MiscControls>
+                      <Define></Define>
+                      <Undefine></Undefine>
+                      <IncludePath></IncludePath>
+                    </VariousControls>
+                  </Cads>
+                </FileArmAds>
+              </FileOption>
+            </File>
+            <File>
+              <FileName>stm32f4xx_hal_i2c.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c.c</FilePath>
+              <FileOption>
+                <CommonProperty>
+                  <UseCPPCompiler>2</UseCPPCompiler>
+                  <RVCTCodeConst>0</RVCTCodeConst>
+                  <RVCTZI>0</RVCTZI>
+                  <RVCTOtherData>0</RVCTOtherData>
+                  <ModuleSelection>0</ModuleSelection>
+                  <IncludeInBuild>1</IncludeInBuild>
+                  <AlwaysBuild>2</AlwaysBuild>
+                  <GenerateAssemblyFile>2</GenerateAssemblyFile>
+                  <AssembleAssemblyFile>2</AssembleAssemblyFile>
+                  <PublicsOnly>2</PublicsOnly>
+                  <StopOnExitCode>11</StopOnExitCode>
+                  <CustomArgument></CustomArgument>
+                  <IncludeLibraryModules></IncludeLibraryModules>
+                  <ComprImg>1</ComprImg>
+                </CommonProperty>
+                <FileArmAds>
+                  <Cads>
+                    <interw>2</interw>
+                    <Optim>0</Optim>
+                    <oTime>2</oTime>
+                    <SplitLS>2</SplitLS>
+                    <OneElfS>2</OneElfS>
+                    <Strict>2</Strict>
+                    <EnumInt>2</EnumInt>
+                    <PlainCh>2</PlainCh>
+                    <Ropi>2</Ropi>
+                    <Rwpi>2</Rwpi>
+                    <wLevel>0</wLevel>
+                    <uThumb>2</uThumb>
+                    <uSurpInc>2</uSurpInc>
+                    <uC99>2</uC99>
+                    <uGnu>2</uGnu>
+                    <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>2</v6Lto>
+                    <v6WtE>2</v6WtE>
+                    <v6Rtti>2</v6Rtti>
+                    <VariousControls>
+                      <MiscControls></MiscControls>
+                      <Define></Define>
+                      <Undefine></Undefine>
+                      <IncludePath></IncludePath>
+                    </VariousControls>
+                  </Cads>
+                </FileArmAds>
+              </FileOption>
+            </File>
+            <File>
+              <FileName>stm32f4xx_hal_i2c_ex.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c_ex.c</FilePath>
+              <FileOption>
+                <CommonProperty>
+                  <UseCPPCompiler>2</UseCPPCompiler>
+                  <RVCTCodeConst>0</RVCTCodeConst>
+                  <RVCTZI>0</RVCTZI>
+                  <RVCTOtherData>0</RVCTOtherData>
+                  <ModuleSelection>0</ModuleSelection>
+                  <IncludeInBuild>1</IncludeInBuild>
+                  <AlwaysBuild>2</AlwaysBuild>
+                  <GenerateAssemblyFile>2</GenerateAssemblyFile>
+                  <AssembleAssemblyFile>2</AssembleAssemblyFile>
+                  <PublicsOnly>2</PublicsOnly>
+                  <StopOnExitCode>11</StopOnExitCode>
+                  <CustomArgument></CustomArgument>
+                  <IncludeLibraryModules></IncludeLibraryModules>
+                  <ComprImg>1</ComprImg>
+                </CommonProperty>
+                <FileArmAds>
+                  <Cads>
+                    <interw>2</interw>
+                    <Optim>0</Optim>
+                    <oTime>2</oTime>
+                    <SplitLS>2</SplitLS>
+                    <OneElfS>2</OneElfS>
+                    <Strict>2</Strict>
+                    <EnumInt>2</EnumInt>
+                    <PlainCh>2</PlainCh>
+                    <Ropi>2</Ropi>
+                    <Rwpi>2</Rwpi>
+                    <wLevel>0</wLevel>
+                    <uThumb>2</uThumb>
+                    <uSurpInc>2</uSurpInc>
+                    <uC99>2</uC99>
+                    <uGnu>2</uGnu>
+                    <useXO>2</useXO>
+                    <v6Lang>0</v6Lang>
+                    <v6LangP>0</v6LangP>
+                    <vShortEn>2</vShortEn>
+                    <vShortWch>2</vShortWch>
+                    <v6Lto>2</v6Lto>
+                    <v6WtE>2</v6WtE>
+                    <v6Rtti>2</v6Rtti>
+                    <VariousControls>
+                      <MiscControls></MiscControls>
+                      <Define></Define>
+                      <Undefine></Undefine>
+                      <IncludePath></IncludePath>
+                    </VariousControls>
+                  </Cads>
+                </FileArmAds>
+              </FileOption>
             </File>
             <File>
               <FileName>stm32f4xx_hal_tim.c</FileName>
@@ -990,6 +1326,26 @@
               <FileName>OLED_service.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\Components\OLED_service.h</FilePath>
+            </File>
+            <File>
+              <FileName>DAC_service.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Components\DAC_service.c</FilePath>
+            </File>
+            <File>
+              <FileName>DAC_service.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Components\DAC_service.h</FilePath>
+            </File>
+            <File>
+              <FileName>knob_task.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Components\knob_task.c</FilePath>
+            </File>
+            <File>
+              <FileName>knob_task.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Components\knob_task.h</FilePath>
             </File>
           </Files>
         </Group>

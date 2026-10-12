@@ -1,5 +1,4 @@
 #include <ebtn.h>
-#include <LED_task.h> // 引用 LED 控制接口
 #include <button_task.h> 
 #include <USART_task.h>
 #include <menu_item.h>
@@ -55,65 +54,22 @@ static ebtn_btn_t my_btns[] = {
 
 void button_event_callback(ebtn_btn_t *btn, ebtn_evt_t evt){
 	if (evt != EBTN_EVT_ONCLICK) {
-			return;
+		return;
 	}
-	
-	if (menu_is_in_LED_toggle()) {
-		switch (btn->key_id) {
-			case BTN_1:
-					menu_LED_toggle_phase_wrapper(0);
-					break;
 
-			case BTN_2:
-					menu_LED_toggle_phase_wrapper(1);
-					break;
-
-			case BTN_3:
-					menu_LED_toggle_phase_wrapper(2);
-					break;
-
-			case BTN_4:
-					menu_LED_toggle_phase_wrapper(3);
-					break;
-
-			case BTN_5:
-					menu_LED_toggle_phase_wrapper(4);
-					break;
-
-			case BTN_6:
-					menu_LED_toggle_phase_wrapper(5);
-					break;
-
-			case BTN_WKUP:
-					menu_LED_toggle_exit();
-					break;
-
-			default:
-					break;
-		}
+	menu_input_t input;
+	switch (btn->key_id) {
+		case BTN_1:    input = MENU_INPUT_1;    break;
+		case BTN_2:    input = MENU_INPUT_2;    break;
+		case BTN_3:    input = MENU_INPUT_3;    break;
+		case BTN_4:    input = MENU_INPUT_4;    break;
+		case BTN_5:    input = MENU_INPUT_5;    break;
+		case BTN_6:    input = MENU_INPUT_6;    break;
+		case BTN_WKUP: input = MENU_INPUT_WKUP; break;
+		default: return;
 	}
-	else {
-		switch (btn->key_id) {
-				case BTN_1:
-						menu_navigate(MENU_KEY_UP);
-						break;
 
-				case BTN_2:
-						menu_navigate(MENU_KEY_DOWN);
-						break;
-
-				case BTN_3:
-						menu_navigate(MENU_KEY_ENTER);
-						break;
-
-				case BTN_4:
-						menu_navigate(MENU_KEY_BACK);
-						break;
-
-				default:
-						break;
-		}
-	}
+	menu_handle_key(input);
 	USART_printf("key=%d\r\n", btn->key_id);
 }
 

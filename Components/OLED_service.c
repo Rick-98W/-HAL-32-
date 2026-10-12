@@ -165,23 +165,37 @@ void OLED_init() {
 	u8g2_DrawButtonUTF8(&I2C_SSD_091, 26, 26, U8G2_BTN_BW1 | U8G2_BTN_SHADOW1, 0, 0, 0, "Powered by Rick");
 	u8g2_SendBuffer(&I2C_SSD_091);
 	OLED_request_refresh(1500);
-	
 }
 
-void OLED_printf(uint8_t x, uint8_t y, uint8_t fontsize, const char *fmt, ...) {
-	char temp_buf[24]; 
+void OLED_clear_area(uint8_t x, uint8_t page, uint16_t width, uint8_t pages) {
+	if (x >= OLED_WIDTH || page >= OLED_HEIGHT / 8) return;
+	if (x + width > OLED_WIDTH) width = OLED_WIDTH - x;
+	if (page + pages > OLED_HEIGHT / 8) pages = OLED_HEIGHT / 8 - page;
+
+	for (uint8_t p = 0; p < pages; p++) {
+		OLED_Set_Position(x, page + p);
+		for (uint16_t c = 0; c < width; c++) {
+			OLED_Write_data(0x00);
+		}
+	}
+}
+
+void OLED_printf(uint8_t x, uint8_t page, uint8_t fontsize, const char *fmt, ...) {
+	char temp_buf[24];
 	va_list args;
 	va_start(args, fmt);
 	int len = vsnprintf(temp_buf, sizeof(temp_buf), fmt, args);
 	va_end(args);
 
 	if (len <= 0) return;
+	if (len > (int)sizeof(temp_buf) - 1) len = sizeof(temp_buf) - 1;
 
-	OLED_ShowStr(x, y, temp_buf, fontsize);
+	OLED_clear_area(x, page, (uint16_t)len * 8, fontsize == 16 ? 2 : 1);
+	OLED_ShowStr(x, page, temp_buf, fontsize);
 }
 
 void *OLED_service_get_u8g2_handle(void) {
-    return (void *)&I2C_SSD_091;
+  return (void *)&I2C_SSD_091;
 }
 
 

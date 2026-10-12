@@ -18,6 +18,8 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "adc.h"
+#include "dac.h"
 #include "dma.h"
 #include "i2c.h"
 #include "tim.h"
@@ -31,6 +33,7 @@
 #include <OLED_service.h>
 #include <OLED_page.h>
 #include <menu_item.h>
+#include <DAC_service.h>
 
 /* USER CODE END Includes */
 
@@ -101,6 +104,10 @@ int main(void)
   MX_TIM9_Init();
   MX_TIM12_Init();
   MX_I2C1_Init();
+  MX_DAC_Init();
+  MX_TIM6_Init();
+  MX_ADC1_Init();
+  MX_ADC2_Init();
   /* USER CODE BEGIN 2 */
 	button_task_init();
 	USART_init();
@@ -109,6 +116,7 @@ int main(void)
 	OLED_init();
 	OLED_page_init();
 	menu_init();
+	DAC_init();
 
   /* USER CODE END 2 */
 

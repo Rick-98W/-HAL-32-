@@ -96,15 +96,15 @@ void menu_navigate(e_menuKey_t e_key) {
 					sp_currentPage->fn_enter_callback();
 				}
 				USART_printf("ENTER\r\n");
-				}
+			}
 			else if (sp_currentItem->e_type == MENU_ITEM_TYPE_ACTION) {
 				if (sp_currentItem->fn_action_callback != NULL) {
 					sp_currentItem->fn_action_callback();
 					sp_executingItem = NULL;
 					USART_printf("ACTION\r\n");
 					}
-				}
-				else if (sp_currentItem->e_type == MENU_ITEM_TYPE_TOGGLE) {
+			}
+			else if (sp_currentItem->e_type == MENU_ITEM_TYPE_TOGGLE) {
 				if (sp_currentItem->fn_toggle_callback != NULL) {
 					USART_printf("TOGGLE\r\n");
 				}

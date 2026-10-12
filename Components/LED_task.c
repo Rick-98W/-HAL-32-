@@ -26,13 +26,13 @@ static const float phaseShift = PI / 3.0f;
 //TIM呼吸灯变量---------------------------------------
 #define LED_LUT_LENGTH 4000U
 
-typedef enum{
+typedef enum {
     LED_BUILDING,
     LED_START_PENDING,
     LED_RUNNING
 }LED_State_t;
 
-typedef enum{
+typedef enum {
 	LED_DMA_CIRCULAR,
 	LED_DMA_NORMAL
 }LED_DMA_State_t;
@@ -48,8 +48,7 @@ static uint32_t s_DMACounter;
 volatile static LED_DMA_State_t s_DMAState = LED_DMA_NORMAL;
 
 /* --- 2. 核心处理函数 --- */
-void LED_soft_breathe(void)
-{
+void LED_soft_breathe(void) {
     // 如果全灭模式开启，强制关闭所有灯
     if (s_blackout) {
         for(int i=0; i<4; i++) s_ucLED[i] = 0;
@@ -64,8 +63,7 @@ void LED_soft_breathe(void)
     s_breathCounter = (s_breathCounter + 1) % k_breathPeriod;
     s_pwmCounter = (s_pwmCounter + 1) % k_pwmMax;
 
-    for(uint8_t i = 0; i < 4; i++) 
-    {
+    for(uint8_t i = 0; i < 4; i++)  {
         // === 修改点：加入 s_LEDPhase[i] 实现相位翻转 ===
         // 乘以 PI，如果是 1.0f 就是加 π (倒立)，如果是 0.0f 就是不变
         float angle = (2.0f * PI * s_breathCounter) / k_breathPeriod + i * phaseShift + (s_LEDPhase[i] * PI);
@@ -88,20 +86,17 @@ void LED_soft_breathe(void)
     LED_disp(s_ucLED);
 }
 
-void LED_disp(uint8_t *s_ucLED)
-{
+void LED_disp(uint8_t *s_ucLED) {
 	  uint8_t temp = 0x00;                // 用于记录当前 LED 状态的临时变量 (最低4位有效)
     static uint8_t temp_pre = 0xff;     // 记录之前 LED 状态的变量, 用于判断是否需要更新显示
 
-    for (int i = 0; i < 4; i++)         // 遍历4个LED的状态
-    {
+    for (int i = 0; i < 4; i++) {
         // 将LED状态整合到temp变量中，方便后续比较
         if (s_ucLED[i]) temp |= (1 << i); // 如果s_ucLED[i]为1, 则将temp的第i位置1
     }
 
     // 仅当当前状态与之前状态不同的时候，才更新显示
-    if (temp != temp_pre)
-    {
+    if (temp != temp_pre) {
         // 使用HAL库函数根据temp的值设置对应引脚状态 (假设低电平点亮)
         HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, (temp & 0x01) ? GPIO_PIN_RESET : GPIO_PIN_SET);
         HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, (temp & 0x02) ? GPIO_PIN_RESET : GPIO_PIN_SET);
@@ -115,7 +110,7 @@ void LED_disp(uint8_t *s_ucLED)
 //TIM呼吸灯函数----------------------------------------------------------------------
 
 //计算正弦点数
-static uint16_t calc_LED_LUT(uint32_t pointIdx, uint32_t domain, uint32_t range, float phaseoffset, uint8_t toggle){
+static uint16_t calc_LED_LUT(uint32_t pointIdx, uint32_t domain, uint32_t range, float phaseoffset, uint8_t toggle) {
 	float angle = (2.0f * PI * pointIdx) / domain + phaseoffset + toggle * PI;
 	float sinValue = sinf(angle);
 	// 开方增强 (powf 0.5)
@@ -126,21 +121,14 @@ static uint16_t calc_LED_LUT(uint32_t pointIdx, uint32_t domain, uint32_t range,
 }
 
 //LUT计算
-void LED_build_LUT(uint32_t index, float offset){
+void LED_build_LUT(uint32_t index, float offset) {
 	for (uint32_t i = 0; i < LED_LUT_LENGTH; i++){
 		s_LEDLUT[i][index - 5] = calc_LED_LUT(i, s_tableLength, s_waveWidth, offset, s_LEDPhase[index - 1]);
 	}
 }
 
 //装配启动
-static HAL_StatusTypeDef LED_hardware_start(void)
-{
-	HAL_StatusTypeDef status;
-	if (s_tableReady == 0) return 9;
-
-	HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_1);
-	HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_2);
-
+static void LED_hardware_start(void) {
 	//CCR的首次装载
 	__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, s_LEDLUT[0][0]);
 	__HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_2, s_LEDLUT[0][1]);
@@ -148,7 +136,7 @@ static HAL_StatusTypeDef LED_hardware_start(void)
 	HAL_TIM_GenerateEvent(&htim4, TIM_EVENTSOURCE_UPDATE);
 
 	//配置并启动 TIM4 Update DMA burst
-	status = HAL_TIM_DMABurst_MultiWriteStart(&htim4, TIM_DMABASE_CCR1, TIM_DMA_UPDATE, (uint32_t *)s_LEDLUT,
+	HAL_TIM_DMABurst_MultiWriteStart(&htim4, TIM_DMABASE_CCR1, TIM_DMA_UPDATE, (uint32_t *)s_LEDLUT,
 																		TIM_DMABURSTLENGTH_2TRANSFERS, LED_LUT_LENGTH * 2U);
 
 	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
@@ -158,14 +146,12 @@ static HAL_StatusTypeDef LED_hardware_start(void)
 	
 	s_LEDState = LED_RUNNING;
 	s_DMAState = LED_DMA_CIRCULAR;
-	
-	return status;
 }
 
 //重定义DMA multi-Burst的ISR
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-	if (htim == &htim4){
-		if (s_DMAState == LED_DMA_NORMAL){ //当DMA模式为normal
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+	if (htim == &htim4) {
+		if (s_DMAState == LED_DMA_NORMAL) { //当DMA模式为normal
 			HAL_TIM_DMABurst_WriteStop(&htim4, TIM_DMA_UPDATE);
 			__HAL_DMA_DISABLE(htim4.hdma[TIM_DMA_ID_UPDATE]);
 			// 等待硬件完全清零 EN 位 (防止总线锁死)
@@ -179,7 +165,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 }
 
 //调度器轮询任务接口
-void LED_proc(void){
+void LED_proc(void) {
 	switch (s_LEDState)
 	{
 			case LED_BUILDING:

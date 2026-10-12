@@ -5,7 +5,7 @@
 uint8_t task_num;
 
 typedef struct {
-    void (*task_func)(void);
+    void (*fn_task_func)(void);
     uint32_t rate_ms;
     uint32_t last_run;
 } task_t;
@@ -16,6 +16,7 @@ static task_t scheduler_task[] =
 		{LED_proc, 1, 0},
 		{button_proc, 5, 0},
 		{USART_proc, 1, 0},
+		{knob_proc, 20, 0},
 };
 
 /**
@@ -45,7 +46,7 @@ void scheduler_run(void){
             scheduler_task[i].last_run = current_tick;
 
             // 执行任务函数
-            scheduler_task[i].task_func();
+            scheduler_task[i].fn_task_func();
         }
     }
 }

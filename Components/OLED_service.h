@@ -7,7 +7,8 @@ typedef void (*OLED_render_cb_t)(void);
 
 void OLED_init(void);
 void OLED_proc(void);
-void OLED_printf(uint8_t x, uint8_t y, uint8_t fontsize, const char *fmt, ...);
+void OLED_clear_area(uint8_t x, uint8_t page, uint16_t width, uint8_t pages);
+void OLED_printf(uint8_t x, uint8_t page, uint8_t fontsize, const char *fmt, ...);
 void OLED_task_poll(void);
 void OLED_request_refresh(uint32_t delay_ms);
 	
