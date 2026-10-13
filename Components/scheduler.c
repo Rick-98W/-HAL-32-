@@ -1,5 +1,9 @@
 #include <scheduler.h>
 
+#include <LED_task.h>
+#include <button_task.h>
+#include <USART_task.h>
+#include <knob_task.h> 
 
 // 全局变量，用于存储任务数量
 uint8_t task_num;

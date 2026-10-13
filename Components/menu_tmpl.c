@@ -3,7 +3,6 @@
 #include <OLED_service.h>
 #include <USART_task.h>
 
-
 static menuItem_t *sp_currentItem = NULL;
 static menuItem_t *sp_currentPage = NULL;
 static menuItem_t *sp_executingItem = NULL;
@@ -36,14 +35,15 @@ void menu_navigate(e_menuKey_t e_key) {
 	if (sp_currentPage == NULL) {
 		return;
   }
+	
   if (sp_currentItem == NULL) {
 		sp_currentItem = sp_currentPage->p_child;
-		// Ò³ÃæËð»µÊ±Ç¿ÐÐÍË»Ø¸¸¼¶
+		// Ò³ï¿½ï¿½ï¿½ï¿½Ê±Ç¿ï¿½ï¿½ï¿½Ë»Ø¸ï¿½ï¿½ï¿½
 		if (sp_currentItem == NULL && sp_currentPage->p_parent != NULL) {
 			sp_currentItem = sp_currentPage;
 			sp_currentPage = sp_currentPage->p_parent;
 		}
-		// Èç¹ûÒÀÈ»ÎÞÐ§¾ÍÍË³ö
+		// ï¿½ï¿½ï¿½ï¿½ï¿½È»ï¿½ï¿½Ð§ï¿½ï¿½ï¿½Ë³ï¿½
 		if (sp_currentItem == NULL) {
 			return;
 		}
@@ -104,10 +104,11 @@ void menu_navigate(e_menuKey_t e_key) {
 					USART_printf("ACTION\r\n");
 					}
 			}
-			else if (sp_currentItem->e_type == MENU_ITEM_TYPE_TOGGLE) {
-				if (sp_currentItem->fn_toggle_callback != NULL) {
-					USART_printf("TOGGLE\r\n");
+			else if (sp_currentItem->e_type == MENU_ITEM_TYPE_VALUE) {
+				if (sp_currentItem->fn_value_adjust_callback != NULL) {
+					sp_currentItem->fn_value_adjust_callback(*sp_currentItem->p_value);
 				}
+				USART_printf("VALUE\r\n");
 			}
 			break;
 

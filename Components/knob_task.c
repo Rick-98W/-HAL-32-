@@ -5,14 +5,15 @@
 
 #define KNOB_AVG_N       8
 #define KNOB_TIMEOUT_MS  2U
-#define KNOB_DEADBAND    14
+#define KNOB_DEADBAND    24
 #define KNOB_RAW_MIN     0
 #define KNOB_RAW_MAX     4095
 
-static int32_t s_knobValue    = 0;   /* ±¾ÂÖÆ½¾ù²¢Îü¸½ºóµÄÔ­Ê¼Öµ */
-static int32_t s_knobValuePre = -1;  /* ÉÏÒ»´Î±»½ÓÊÜµÄÖµ£¨ÒµÎñÓÃÕâ¸ö£© */
+static uint32_t s_knobValue    = 0;   /* ï¿½ï¿½ï¿½ï¿½Æ½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô­Ê¼Öµ */
+static uint32_t s_knobValuePre = UINT32_MAX;  /* ï¿½ï¿½Ò»ï¿½Î±ï¿½ï¿½ï¿½ï¿½Üµï¿½Öµï¿½ï¿½Òµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ */
+static knob_change_cb_t s_changeCb = NULL;
 
-static HAL_StatusTypeDef knob_read_raw(int32_t *out) {
+static HAL_StatusTypeDef knob_read_raw(uint32_t *out) {
 	uint32_t sum = 0;
 	for (uint8_t i = 0; i < KNOB_AVG_N; i++) {
 		if (HAL_ADC_Start(&hadc2) != HAL_OK)
@@ -21,12 +22,12 @@ static HAL_StatusTypeDef knob_read_raw(int32_t *out) {
 				return HAL_TIMEOUT;
 		sum += HAL_ADC_GetValue(&hadc2);
 	}
-	*out = (int32_t)((sum + KNOB_AVG_N / 2) / KNOB_AVG_N);
+	*out = (uint32_t)((sum + KNOB_AVG_N / 2) / KNOB_AVG_N);
 	return HAL_OK;
 }
 
 void knob_proc(void) {
-	int32_t raw;
+	uint32_t raw;
 	if (knob_read_raw(&raw) != HAL_OK)
 			return;
 
@@ -36,17 +37,29 @@ void knob_proc(void) {
 
 	int32_t diff = s_knobValue - s_knobValuePre;
 	uint8_t atEnd = (s_knobValue == KNOB_RAW_MIN) || (s_knobValue == KNOB_RAW_MAX);
-	uint8_t changed = (s_knobValuePre < 0) ||
+	uint8_t changed = (s_knobValuePre == UINT32_MAX) ||
 										(diff > KNOB_DEADBAND) ||
 										(diff < -KNOB_DEADBAND) ||
 										(atEnd && diff != 0);
 
-	if (changed)
-			s_knobValuePre = s_knobValue;
+	if (changed) {
+		s_knobValuePre = s_knobValue;
+		if (s_changeCb != NULL) {
+			s_changeCb(s_knobValue);
+		}
+	}
 
 	if (menu_get_mode() == MENU_MODE_LOG) {
 			if (changed) {
 					OLED_printf(0, 2, 8, "%4ld", (long)s_knobValuePre);
 			}
 	}
+}
+
+uint32_t knob_get_value() {
+	return s_knobValue;
+}
+
+void knob_register_change_cb(knob_change_cb_t fn_cb) {
+	s_changeCb = fn_cb;
 }

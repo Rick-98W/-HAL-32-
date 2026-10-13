@@ -18,7 +18,7 @@ typedef enum {
 	MENU_MODE_NORMAL,
 	MENU_MODE_LED_TOGGLE,
 	MENU_MODE_LOG,
-	MENU_MODE_VALUE_EDIT,
+	MENU_MODE_VALUE_ADJUST,
 } menu_mode_t;
 
 typedef enum {
@@ -32,11 +32,10 @@ typedef enum {
 } menu_input_t;
 
 void menu_init(void);
-const menu_mode_t menu_get_mode(void);
+menu_mode_t menu_get_mode(void);
 void menu_handle_key(menu_input_t input);
 
-void menu_on_knob_raw(int32_t raw);
-const menuItem_t *menu_get_edit_item(void);
+bool menu_value_is_editing(void);
 int16_t menu_get_edit_value(void);
 
 #endif

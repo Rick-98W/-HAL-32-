@@ -1,4 +1,5 @@
 #include <OLED_page.h>
+#include "stdio.h"
 #include <menu_item.h>
 #include <OLED_service.h>
 #include "main.h"
@@ -9,8 +10,16 @@
 static uint8_t s_feedbackLED;
 static bool s_feedbackValid = false;
 	
-const static menuItem_t *sp_currentItem = NULL;
-const static menuItem_t *sp_currentPage = NULL;
+
+static void OLED_value_page_render(u8g2_t *u8g2, const menuItem_t *item, bool editing) {
+	char buf[12];
+	int16_t value = editing ? menu_get_edit_value() : *item->p_value;
+	snprintf(buf, sizeof(buf), "%d", value);
+
+	u8g2_DrawStr(u8g2, 0, 8,  item->p_name);
+	u8g2_DrawStr(u8g2, 0, 16, buf);
+	u8g2_DrawStr(u8g2, 0, 32, editing ? "Enter:OK  Back:Cancel" : "Enter:Edit  Back:Exit");
+}
 
 static void OLED_LED_toggle_page_render(u8g2_t *u8g2) {
 	u8g2_DrawStr(u8g2, 0, 8, "LED Toggling...");
@@ -78,9 +87,9 @@ static void OLED_draw_items(u8g2_t *u8g2, const menuItem_t *page, const menuItem
 }
 
 static void OLED_normal_page_render(u8g2_t *u8g2, const menuItem_t *page, const menuItem_t *item) {
-	// µÚÒ»ÐÐ£ºµ±Ç°Ò³ÃæÃû³Æ
+	// ï¿½ï¿½Ò»ï¿½Ð£ï¿½ï¿½ï¿½Ç°Ò³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	u8g2_DrawStr(u8g2, 0, 8, page->p_name);
-	// ºóÃæÈýÐÐ£ºµ±Ç°Ò³ÃæµÄ child
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½Ç°Ò³ï¿½ï¿½ï¿½ child
 	OLED_draw_items(u8g2, page, item);
 }
 	
@@ -116,6 +125,9 @@ void OLED_page_render(void) {
 		case MENU_MODE_NORMAL:
 			OLED_normal_page_render(u8g2, page, item);
 			break;
+		case MENU_MODE_VALUE_ADJUST:
+			OLED_value_page_render(u8g2, item, menu_value_is_editing());
+			break;
 		default:
 			break;
 	}
@@ -124,7 +136,7 @@ void OLED_page_render(void) {
 }
 
 void OLED_page_init(void){
-	//½« OLED_page_render ×¢²á¸øservice hook
+	//ï¿½ï¿½ OLED_page_render ×¢ï¿½ï¿½ï¿½service hook
    OLED_service_register_render_cb(OLED_page_render);
 }
 

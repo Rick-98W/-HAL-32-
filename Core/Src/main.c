@@ -34,6 +34,8 @@
 #include <OLED_page.h>
 #include <menu_item.h>
 #include <DAC_service.h>
+#include <button_task.h>
+#include <USART_task.h>
 
 /* USER CODE END Includes */
 
