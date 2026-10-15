@@ -1,7 +1,6 @@
 template/oled_page.o: ..\Components\OLED_page.c ..\Components\OLED_page.h \
-  ..\Components\menu_item.h ..\Components\menu_tmpl.h \
-  ..\Components\OLED_service.h ..\Core\Inc\main.h \
-  ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal.h \
+  ..\Components\menu\menu_item.h ..\Components\OLED_service.h \
+  ..\Core\Inc\main.h ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal.h \
   ..\Core\Inc\stm32f4xx_hal_conf.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_rcc.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_def.h \

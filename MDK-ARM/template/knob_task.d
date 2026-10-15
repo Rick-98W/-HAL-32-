@@ -31,5 +31,4 @@ template/knob_task.o: ..\Components\knob_task.c ..\Components\knob_task.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_tim.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_tim_ex.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_uart.h \
-  ..\Components\menu_item.h ..\Components\menu_tmpl.h \
-  ..\Components\OLED_service.h
+  ..\Components\menu\menu_item.h ..\Components\OLED_service.h

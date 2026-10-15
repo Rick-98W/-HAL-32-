@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F429xx</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include;../Components;../Packages/ebtn;../Packages/RingBuffer;../Packages/OLED;../Packages/u8g2</IncludePath>
+              <IncludePath>../Core/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include;../Components;../Packages/ebtn;../Packages/RingBuffer;../Packages/OLED;../Packages/u8g2;..\Components\menu</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -1288,26 +1288,6 @@
               <FilePath>..\Components\ICAP_service.h</FilePath>
             </File>
             <File>
-              <FileName>menu_tmpl.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Components\menu_tmpl.c</FilePath>
-            </File>
-            <File>
-              <FileName>menu_tmpl.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\Components\menu_tmpl.h</FilePath>
-            </File>
-            <File>
-              <FileName>menu_item.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Components\menu_item.c</FilePath>
-            </File>
-            <File>
-              <FileName>menu_item.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\Components\menu_item.h</FilePath>
-            </File>
-            <File>
               <FileName>OLED_page.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Components\OLED_page.c</FilePath>
@@ -1606,6 +1586,51 @@
               <FileName>u8x8_u16toa.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Packages\u8g2\u8x8_u16toa.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Components/menu</GroupName>
+          <Files>
+            <File>
+              <FileName>menu_item.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Components\menu\menu_item.c</FilePath>
+            </File>
+            <File>
+              <FileName>menu_item.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Components\menu\menu_item.h</FilePath>
+            </File>
+            <File>
+              <FileName>menu_LED_suppl.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Components\menu\menu_LED_suppl.c</FilePath>
+            </File>
+            <File>
+              <FileName>menu_LED_suppl.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Components\menu\menu_LED_suppl.h</FilePath>
+            </File>
+            <File>
+              <FileName>menu_tmpl.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Components\menu\menu_tmpl.c</FilePath>
+            </File>
+            <File>
+              <FileName>menu_tmpl.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Components\menu\menu_tmpl.h</FilePath>
+            </File>
+            <File>
+              <FileName>menu_ADC_suppl.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Components\menu\menu_ADC_suppl.c</FilePath>
+            </File>
+            <File>
+              <FileName>menu_ADC_suppl.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Components\menu\menu_ADC_suppl.h</FilePath>
             </File>
           </Files>
         </Group>

@@ -115,6 +115,10 @@ void DAC_set_wave(e_waveType_t waveType) {
 	if (s_waveMode != waveType) {
 		s_waveMode = waveType;
 		DAC_wave_compute(s_DACLUT[s_waveMode], s_waveMode, currFSR);
+		HAL_TIM_Base_Stop(&htim6);
+		hdac.DMA_Handle1->Instance->M0AR = (uint32_t)s_DACLUT[s_waveMode];
+		__HAL_TIM_SET_COUNTER(&htim6, 0);
+		HAL_TIM_Base_Start(&htim6);
 	}
 }
 

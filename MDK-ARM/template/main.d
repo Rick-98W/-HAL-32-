@@ -32,9 +32,8 @@ template/main.o: ..\Core\Src\main.c ..\Core\Inc\main.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_uart.h \
   ..\Core\Inc\adc.h ..\Core\Inc\dac.h ..\Core\Inc\dma.h \
   ..\Core\Inc\i2c.h ..\Core\Inc\tim.h ..\Core\Inc\usart.h \
-  ..\Core\Inc\gpio.h ..\Components\scheduler.h ..\Components\LED_task.h \
-  ..\Components\button_task.h ..\Components\USART_task.h \
-  ..\Components\knob_task.h ..\Components\ICAP_service.h \
-  ..\Components\OLED_service.h ..\Components\OLED_page.h \
-  ..\Components\menu_item.h ..\Components\menu_tmpl.h \
-  ..\Components\DAC_service.h
+  ..\Core\Inc\gpio.h ..\Components\scheduler.h \
+  ..\Components\ICAP_service.h ..\Components\OLED_service.h \
+  ..\Components\OLED_page.h ..\Components\menu\menu_item.h \
+  ..\Components\DAC_service.h ..\Components\button_task.h \
+  ..\Components\USART_task.h

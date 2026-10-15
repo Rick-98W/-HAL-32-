@@ -32,5 +32,4 @@ template/button_task.o: ..\Components\button_task.c \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_tim.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_tim_ex.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_uart.h \
-  ..\Components\USART_task.h ..\Components\menu_item.h \
-  ..\Components\menu_tmpl.h
+  ..\Components\USART_task.h ..\Components\menu\menu_item.h
