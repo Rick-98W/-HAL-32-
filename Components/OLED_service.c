@@ -198,8 +198,6 @@ void *OLED_service_get_u8g2_handle(void) {
   return (void *)&I2C_SSD_091;
 }
 
-
-
 void OLED_proc(){
 	if (sfn_renderCallback != NULL) {
 		sfn_renderCallback();

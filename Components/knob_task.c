@@ -9,8 +9,8 @@
 #define KNOB_RAW_MIN     0
 #define KNOB_RAW_MAX     4095
 
-static uint32_t s_knobValue    = 0;   /* ����ƽ�����������ԭʼֵ */
-static uint32_t s_knobValuePre = UINT32_MAX;  /* ��һ�α����ܵ�ֵ��ҵ��������� */
+static uint32_t s_knobValue    = 0;
+static uint32_t s_knobValuePre = UINT32_MAX;
 static knob_change_cb_t s_changeCb = NULL;
 
 static HAL_StatusTypeDef knob_read_raw(uint32_t *out) {

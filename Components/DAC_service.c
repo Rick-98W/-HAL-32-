@@ -8,13 +8,8 @@
 #define DAC_LUT_LENGTH 250U
 
 static uint16_t s_DACLUT[3][DAC_LUT_LENGTH];
-uint32_t FSR = 3300;
-
-typedef enum {
-  SINUSOIDAL = 0,
-  TRIANGULAR,
-  SAWTOOTH
-} e_waveType_t;
+uint32_t currFSR = 3300;
+uint32_t currPeriod = 5000;
 
 static e_waveType_t s_waveMode = SINUSOIDAL;
 
@@ -57,54 +52,80 @@ void DAC_set_waveform_period_ms(uint32_t periodMs) {
     __HAL_TIM_SET_AUTORELOAD(&htim6, (uint32_t) targetARR);
 }
 
-void DAC_wave_compute(uint16_t* p_buffer, e_waveType_t e_waveMode) {
-    // 每次步进的弧度值
-    float step = PI_2 / (float)DAC_LUT_LENGTH; 
-    float val = 0.0f;
+void DAC_wave_compute(uint16_t* p_buffer, e_waveType_t e_waveMode, uint32_t FSR) {
+	// 每次步进的弧度值
+	float step = PI_2 / (float)DAC_LUT_LENGTH; 
+	float val = 0.0f;
+	float FSRRatio = FSR / 3300.0f;
 
-		switch(e_waveMode) {
-			case SINUSOIDAL: // 正弦波
+	switch(e_waveMode) {
+		case SINUSOIDAL: // 正弦波
+			for(uint32_t i = 0; i < DAC_LUT_LENGTH; i++) {
+				val = sinf(step * i);
+				// sinf 范围 -1 ~ +1，抬升并压扁到 0 ~ 4095 
+				p_buffer[i] = (uint16_t)(2047.5f * (val + 1.0f) * FSRRatio); 
+			}
+			break;
+				
+		case TRIANGULAR: // 三角波
+			for(uint32_t i = 0; i < DAC_LUT_LENGTH; i++) {
+				// 分割前半周期（爬升）和后半周期（回落） 
+				if ((step * i) < PI_1) {
+						// 0 到 PI 映射为 0.0f 到 1.0f
+						val = (step * i) / PI_1; 
+				} 
+				else {
+						// PI 到 2*PI 映射为 1.0f 到 0.0f
+						val = 2.0f - ((step * i) / PI_1); 
+				}
+				p_buffer[i] = (uint16_t)(4095.0f * val * FSRRatio); 
+			}
+			break;
+				
+		case SAWTOOTH: // 锯齿波
+			for(uint32_t i = 0; i < DAC_LUT_LENGTH; i++) {
+				// current_phase 范围 0 ~ 2*PI，线性映射到 0 ~ 4095
+				p_buffer[i] = (uint16_t)(4095.0f * ((step * i) / PI_2) * FSRRatio); 
+			}
+			break;
+				
+		default:
 				for(uint32_t i = 0; i < DAC_LUT_LENGTH; i++) {
-					val = sinf(step * i);
-					// sinf 范围 -1 ~ +1，抬升并压扁到 0 ~ 4095 
-					p_buffer[i] = (uint16_t)(2047.5f * (val + 1.0f)); 
+					p_buffer[i] = 2048; // 异常默认输出 1.65V 中间值
 				}
 				break;
-					
-			case TRIANGULAR: // 三角波
-				for(uint32_t i = 0; i < DAC_LUT_LENGTH; i++) {
-					// 分割前半周期（爬升）和后半周期（回落） 
-					if ((step * i) < PI_1) {
-							// 0 到 PI 映射为 0.0f 到 1.0f
-							val = (step * i) / PI_1; 
-					} 
-					else {
-							// PI 到 2*PI 映射为 1.0f 到 0.0f
-							val = 2.0f - ((step * i) / PI_1); 
-					}
-					p_buffer[i] = (uint16_t)(4095.0f * val); 
-				}
-				break;
-					
-			case SAWTOOTH: // 锯齿波
-				for(uint32_t i = 0; i < DAC_LUT_LENGTH; i++) {
-					// current_phase 范围 0 ~ 2*PI，线性映射到 0 ~ 4095
-					p_buffer[i] = (uint16_t)(4095.0f * ((step * i) / PI_2)); 
-				}
-				break;
-					
-			default:
-					for(uint32_t i = 0; i < DAC_LUT_LENGTH; i++) {
-						p_buffer[i] = 2048; // 异常默认输出 1.65V 中间值
-					}
-					break;
-		}
+	}
+}
+
+void DAC_set_FSR(int16_t adjFSR) {
+	if (currFSR != adjFSR) {
+		currFSR = adjFSR;
+		DAC_wave_compute(s_DACLUT[s_waveMode], s_waveMode, currFSR);
+	}
+}
+
+void DAC_set_period(int16_t adjPeriod) {
+	if (currPeriod != adjPeriod) {
+		currPeriod = adjPeriod;
+		DAC_set_waveform_period_ms(currPeriod);
+	}
+}
+
+void DAC_set_wave(e_waveType_t waveType) {
+	if (s_waveMode != waveType) {
+		s_waveMode = waveType;
+		DAC_wave_compute(s_DACLUT[s_waveMode], s_waveMode, currFSR);
+	}
+}
+
+e_waveType_t DAC_get_waveType(void) {
+	return s_waveMode;
 }
 
 void DAC_init(void) {
-	DAC_wave_compute(s_DACLUT[SINUSOIDAL],SINUSOIDAL);
+	DAC_wave_compute(s_DACLUT[s_waveMode], s_waveMode, currFSR);
 	HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)s_DACLUT[SINUSOIDAL], DAC_LUT_LENGTH, DAC_ALIGN_12B_R);
-	DAC_set_waveform_period_ms(5000);
+	DAC_set_waveform_period_ms(currPeriod);
 	HAL_TIM_Base_Start(&htim6);
 	
 }

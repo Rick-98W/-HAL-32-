@@ -13,10 +13,10 @@ static bool s_feedbackValid = false;
 
 static void OLED_value_page_render(u8g2_t *u8g2, const menuItem_t *item, bool editing) {
 	char buf[12];
-	int16_t value = editing ? menu_get_edit_value() : *item->p_value;
+	int16_t value = editing ? menu_get_edit_value() : menu_item_value(item);
 	snprintf(buf, sizeof(buf), "%d", value);
 
-	u8g2_DrawStr(u8g2, 0, 8,  item->p_name);
+	u8g2_DrawStr(u8g2, 0, 8,  menu_item_name(item));
 	u8g2_DrawStr(u8g2, 0, 16, buf);
 	u8g2_DrawStr(u8g2, 0, 32, editing ? "Enter:OK  Back:Cancel" : "Enter:Edit  Back:Exit");
 }
@@ -53,7 +53,7 @@ static void OLED_draw_items(u8g2_t *u8g2, const menuItem_t *page, const menuItem
 	uint8_t start_index;
 	uint8_t row;
 
-	for (item = page->p_child; item != NULL; item = item->p_next) {
+	for (item = menu_item_child(page); item != NULL; item = menu_item_next(item)) {
 			if (item == selected) {
 					selected_index = count;
 			}
@@ -70,26 +70,25 @@ static void OLED_draw_items(u8g2_t *u8g2, const menuItem_t *page, const menuItem
 			start_index = count > OLED_VISIBLE_ROWS	? count - OLED_VISIBLE_ROWS : 0;
 	}
 
-	item = page->p_child;
+	item = menu_item_child(page);
 
 	for (uint8_t i = 0; i < start_index; i++) {
-			item = item->p_next;
+			item = menu_item_next(item);
 	}
 
 	for (row = 0; row < OLED_VISIBLE_ROWS && item != NULL; row++) {
 			uint8_t y = 16 + row * 8;
 
 			u8g2_DrawStr(u8g2, 0, y, item == selected ? ">" : " ");
-			u8g2_DrawStr(u8g2, 8, y, item->p_name);
+			u8g2_DrawStr(u8g2, 8, y, menu_item_name(item));
 
-			item = item->p_next;
+			item = menu_item_next(item);
 	}
 }
 
 static void OLED_normal_page_render(u8g2_t *u8g2, const menuItem_t *page, const menuItem_t *item) {
-	// ��һ�У���ǰҳ������
-	u8g2_DrawStr(u8g2, 0, 8, page->p_name);
-	// �������У���ǰҳ��� child
+	// 子菜单名
+	u8g2_DrawStr(u8g2, 0, 8, menu_item_name(page));
 	OLED_draw_items(u8g2, page, item);
 }
 	
@@ -136,7 +135,6 @@ void OLED_page_render(void) {
 }
 
 void OLED_page_init(void){
-	//�� OLED_page_render ע���service hook
    OLED_service_register_render_cb(OLED_page_render);
 }
 

@@ -38,12 +38,12 @@ void menu_navigate(e_menuKey_t e_key) {
 	
   if (sp_currentItem == NULL) {
 		sp_currentItem = sp_currentPage->p_child;
-		// ҳ����ʱǿ���˻ظ���
+		// 尝试返回重指修复
 		if (sp_currentItem == NULL && sp_currentPage->p_parent != NULL) {
 			sp_currentItem = sp_currentPage;
 			sp_currentPage = sp_currentPage->p_parent;
 		}
-		// �����Ȼ��Ч���˳�
+		// 还空指就返回
 		if (sp_currentItem == NULL) {
 			return;
 		}
@@ -105,8 +105,8 @@ void menu_navigate(e_menuKey_t e_key) {
 					}
 			}
 			else if (sp_currentItem->e_type == MENU_ITEM_TYPE_VALUE) {
-				if (sp_currentItem->fn_value_adjust_callback != NULL) {
-					sp_currentItem->fn_value_adjust_callback(*sp_currentItem->p_value);
+				if (sp_currentItem->fn_value_enter_callback != NULL) {
+					sp_currentItem->fn_value_enter_callback(sp_currentItem);
 				}
 				USART_printf("VALUE\r\n");
 			}
@@ -122,7 +122,6 @@ void menu_navigate(e_menuKey_t e_key) {
 		default:
 			return;
 	}
-
 	OLED_proc();
 }
 
@@ -150,6 +149,7 @@ void menu_create_submenu(menuItem_t *p_item,
 		p_item->p_child                   = p_child;
 		p_item->fn_enter_callback         = NULL;
 		p_item->fn_action_callback        = NULL;
+		p_item->fn_value_enter_callback   = NULL;
 		p_item->fn_value_adjust_callback  = NULL;
 		p_item->fn_toggle_callback        = NULL;
 		p_item->p_value                   = NULL;
@@ -175,7 +175,9 @@ void menu_bind_value(menuItem_t *p_item,
 	int16_t *p_value,
 	int16_t valueMin,
 	int16_t valueMax,
+	void (*fn_value_enter_callback)(const menuItem_t *),
 	void (*fn_value_adjust_callback)(int16_t)) {
+		p_item->fn_value_enter_callback  = fn_value_enter_callback;
 		p_item->fn_value_adjust_callback = fn_value_adjust_callback;
 		p_item->p_value                  = p_value;
 		p_item->valueMin                 = valueMin;
@@ -202,4 +204,16 @@ uint32_t menu_get_current_context(void) {
 			return sp_executingItem->context;
 	}
 	return 0;
+}
+
+void menu_focus_item(menuItem_t *p_item) {
+	if (p_item == NULL || sp_currentPage == NULL) {
+		return;
+	}
+	for (menuItem_t *item = sp_currentPage->p_child; item != NULL; item = item->p_next) {
+		if (item == p_item) {
+			sp_currentItem = p_item;
+			return;
+		}
+	}
 }
