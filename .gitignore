@@ -1,15 +1,27 @@
-  *.o
-  *.d
-  *.axf
-  *.map
-  *.htm
-  *.lnp
-  *.dep
-  *.crf
-  *.iex
-  *.bak
-  *.uvguix.*
-  *.uvoptx
-  .vscode/
-  .idea
-  Odds & Ends/
+# Keil MDK build outputs
+*.o
+*.d
+*.axf
+*.map
+*.htm
+*.lnp
+*.dep
+*.crf
+*.iex
+*.lst
+*.bak
+MDK-ARM/template/
+
+# Keil per-user settings (template.uvprojx stays tracked)
+*.uvguix.*
+*.uvoptx
+
+# IDE
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Local notes, not project files
+Odds & Ends/
