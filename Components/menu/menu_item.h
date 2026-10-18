@@ -17,6 +17,8 @@ enum {
 	DACSetFSR,
 	DACSetPeriod,
 	DACSetWave,
+	ADCSetSamplFactor,
+	ADCExport,
 };
 
 typedef enum {

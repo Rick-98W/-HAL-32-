@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F429xx</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include;../Components;../Packages/ebtn;../Packages/RingBuffer;../Packages/OLED;../Packages/u8g2;..\Components\menu</IncludePath>
+              <IncludePath>../Core/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include;../Components;../Packages/ebtn;../Packages/RingBuffer;../Packages/OLED;../Packages/u8g2;../Components/menu</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -1326,6 +1326,26 @@
               <FileName>knob_task.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\Components\knob_task.h</FilePath>
+            </File>
+            <File>
+              <FileName>ADC_service.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Components\ADC_service.c</FilePath>
+            </File>
+            <File>
+              <FileName>ADC_service.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Components\ADC_service.h</FilePath>
+            </File>
+            <File>
+              <FileName>serial_export_task.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Components\serial_export_task.c</FilePath>
+            </File>
+            <File>
+              <FileName>serial_export_task.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Components\serial_export_task.h</FilePath>
             </File>
           </Files>
         </Group>

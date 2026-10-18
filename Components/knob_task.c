@@ -1,7 +1,5 @@
 #include <knob_task.h>
 #include "adc.h"
-#include <menu_item.h>
-#include <OLED_service.h>
 
 #define KNOB_AVG_N       8
 #define KNOB_TIMEOUT_MS  2U
@@ -47,12 +45,6 @@ void knob_proc(void) {
 		if (s_changeCb != NULL) {
 			s_changeCb(s_knobValue);
 		}
-	}
-
-	if (menu_get_mode() == MENU_MODE_LOG) {
-			if (changed) {
-					OLED_printf(0, 2, 8, "%4ld", (long)s_knobValuePre);
-			}
 	}
 }
 

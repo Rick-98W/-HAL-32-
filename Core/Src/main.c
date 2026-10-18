@@ -36,6 +36,7 @@
 #include <DAC_service.h>
 #include <button_task.h>
 #include <USART_task.h>
+#include <ADC_service.h>
 
 /* USER CODE END Includes */
 
@@ -110,6 +111,7 @@ int main(void)
   MX_TIM6_Init();
   MX_ADC1_Init();
   MX_ADC2_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
 	button_task_init();
 	USART_init();
@@ -119,6 +121,7 @@ int main(void)
 	OLED_page_init();
 	menu_init();
 	DAC_init();
+	ADC_init();
 
   /* USER CODE END 2 */
 

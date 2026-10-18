@@ -8,8 +8,9 @@
 #define DAC_LUT_LENGTH 250U
 
 static uint16_t s_DACLUT[3][DAC_LUT_LENGTH];
-uint32_t currFSR = 3300;
-uint32_t currPeriod = 5000;
+static uint32_t s_currFSR = 3300;
+static uint32_t s_currPeriod = 5000;
+static uint64_t targetARR;
 
 static e_waveType_t s_waveMode = SINUSOIDAL;
 
@@ -41,7 +42,7 @@ void DAC_set_waveform_period_ms(uint32_t periodMs) {
 
     // 5. 算目标 ARR (用 uint64_t 防止 3,000,000 * u_periodMs 中间乘法溢出)
     // 公式: ARR = (cntFreq * periodMs) / (DAC_LUT_LENGTH * 1000) - 1
-    uint64_t targetARR = ((uint64_t)cntFreq * periodMs) / (DAC_LUT_LENGTH * 1000U) - 1U;
+    targetARR = ((uint64_t)cntFreq * periodMs) / (DAC_LUT_LENGTH * 1000U) - 1U;
 
     // 6. 16 位定时器边界保护 (防止 ARR 超过 65535)
     if (targetARR > 65535U) {
@@ -97,29 +98,39 @@ void DAC_wave_compute(uint16_t* p_buffer, e_waveType_t e_waveMode, uint32_t FSR)
 	}
 }
 
+static void DAC_restart_dma(void) {
+      HAL_TIM_Base_Stop(&htim6);
+      HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
+      HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)s_DACLUT[s_waveMode], DAC_LUT_LENGTH, DAC_ALIGN_12B_R);
+      __HAL_TIM_SET_COUNTER(&htim6, 0);
+      HAL_TIM_Base_Start(&htim6);
+}
+
 void DAC_set_FSR(int16_t adjFSR) {
-	if (currFSR != adjFSR) {
-		currFSR = adjFSR;
-		DAC_wave_compute(s_DACLUT[s_waveMode], s_waveMode, currFSR);
+	if (s_currFSR != adjFSR) {
+		s_currFSR = adjFSR;
+		DAC_wave_compute(s_DACLUT[s_waveMode], s_waveMode, s_currFSR);
 	}
 }
 
 void DAC_set_period(int16_t adjPeriod) {
-	if (currPeriod != adjPeriod) {
-		currPeriod = adjPeriod;
-		DAC_set_waveform_period_ms(currPeriod);
+	if (s_currPeriod != adjPeriod) {
+		s_currPeriod = adjPeriod;
+		DAC_set_waveform_period_ms(s_currPeriod);
+		DAC_restart_dma();
 	}
 }
 
 void DAC_set_wave(e_waveType_t waveType) {
 	if (s_waveMode != waveType) {
 		s_waveMode = waveType;
-		DAC_wave_compute(s_DACLUT[s_waveMode], s_waveMode, currFSR);
-		HAL_TIM_Base_Stop(&htim6);
-		hdac.DMA_Handle1->Instance->M0AR = (uint32_t)s_DACLUT[s_waveMode];
-		__HAL_TIM_SET_COUNTER(&htim6, 0);
-		HAL_TIM_Base_Start(&htim6);
+		DAC_wave_compute(s_DACLUT[s_waveMode], s_waveMode, s_currFSR);
+		DAC_restart_dma();
 	}
+}
+
+uint32_t DAC_get_ARR(void) {
+	return (uint32_t)targetARR;
 }
 
 e_waveType_t DAC_get_waveType(void) {
@@ -127,9 +138,9 @@ e_waveType_t DAC_get_waveType(void) {
 }
 
 void DAC_init(void) {
-	DAC_wave_compute(s_DACLUT[s_waveMode], s_waveMode, currFSR);
+	DAC_wave_compute(s_DACLUT[s_waveMode], s_waveMode, s_currFSR);
 	HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)s_DACLUT[SINUSOIDAL], DAC_LUT_LENGTH, DAC_ALIGN_12B_R);
-	DAC_set_waveform_period_ms(currPeriod);
+	DAC_set_waveform_period_ms(s_currPeriod);
 	HAL_TIM_Base_Start(&htim6);
 	
 }

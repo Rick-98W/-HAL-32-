@@ -1,7 +1,7 @@
 #include <USART_task.h>
 #include "usart.h"
 #include <LED_task.h>
-#include <ringbuffer.h> // 【新增】引入 RingBuffer
+#include "ringbuffer.h" // 【新增】引入 RingBuffer
 #include "stdio.h"
 #include "stdarg.h"
 #include "string.h"
@@ -75,6 +75,7 @@ void USART_printf(const char *fmt, ...)
     va_end(args);
 
     if (len <= 0) return;
+		if (len > (int)sizeof(temp_buf) - 1) len = sizeof(temp_buf) - 1;
 
     // 2. 压入 RingBuffer (Critical Section)
     // 因为 TxCpltCallback 中断里也会操作 RingBuffer (get)，所以这里必须关中断保护 put
