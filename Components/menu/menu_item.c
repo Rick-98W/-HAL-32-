@@ -55,16 +55,18 @@ void menu_value_enter(const menuItem_t *item) {
 	s_valueItem = item;
 	s_valueEditing = false;
 	s_menu_mode = MENU_MODE_VALUE_ADJUST;
-	OLED_proc();
 }
 
-void menu_led_toggle_enter(void) {
+void menu_LED_toggle_enter(void) {
 	s_menu_mode = MENU_MODE_LED_TOGGLE;
-	OLED_proc();
+}
+
+void menu_ADC_param_enter(void) {
+	s_menu_mode = MENU_MODE_WAVE_PARAM;
 }
 
 void menu_init(void) {
-	//											NODE						NAME			PAGEID			NEXT										PREV						PARENT			CHILD		
+	//											NODE						NAME			PAGEID			NEXT									PREV						PARENT				CHILD		
 	menu_create_submenu(&s_rootItem,       "Main",   MAIN_PAGE,   NULL,              NULL,              NULL,        &s_mainLEDItem);
 	menu_create_submenu(&s_mainLEDItem,    "LED",    LED_PAGE,    &s_mainADCItem,    NULL,              &s_rootItem, NULL);
 	menu_create_submenu(&s_mainADCItem,    "ADC",    ADC_PAGE,    &s_mainSystemItem, &s_mainLEDItem,    &s_rootItem, NULL);
@@ -146,6 +148,15 @@ void menu_handle_key(menu_input_t input) {
 
 		case MENU_MODE_VALUE_ADJUST:
 			menu_value_route(input);
+			break;
+
+		case MENU_MODE_WAVE_PARAM:
+			if (input == MENU_INPUT_3) {
+				menu_navigate(MENU_KEY_ENTER);
+			}
+			if (input == MENU_INPUT_4) {
+				menu_return_normal_mode();
+			}
 			break;
 
 		case MENU_MODE_NORMAL:

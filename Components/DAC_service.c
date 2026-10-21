@@ -5,7 +5,7 @@
 
 #define PI_2 (6.2831853f)
 #define PI_1 (3.1415926f)
-#define DAC_LUT_LENGTH 250U
+#define DAC_LUT_LENGTH 256U
 
 static uint16_t s_DACLUT[3][DAC_LUT_LENGTH];
 static uint32_t s_currFSR = 3300;
@@ -15,17 +15,17 @@ static uint64_t targetARR;
 static e_waveType_t s_waveMode = SINUSOIDAL;
 
 /**
- * @brief  ¶¯Ì¬ÉèÖÃ DAC Êä³ö²¨ÐÎµÄÖÜÆÚ
- * @param  u_periodMs Ä¿±ê²¨ÐÎÖÜÆÚ£¬µ¥Î»ºÁÃë (ms)
+ * @brief  ï¿½ï¿½Ì¬ï¿½ï¿½ï¿½ï¿½ DAC ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îµï¿½ï¿½ï¿½ï¿½ï¿½
+ * @param  u_periodMs Ä¿ï¿½ê²¨ï¿½ï¿½ï¿½ï¿½ï¿½Ú£ï¿½ï¿½ï¿½Î»ï¿½ï¿½ï¿½ï¿½ (ms)
  */
 void DAC_set_waveform_period_ms(uint32_t periodMs) {
     if (periodMs == 0) return;
 
-    // 1. »ñÈ¡ APB1 ×ÜÏßÊ±ÖÓ
+    // 1. ï¿½ï¿½È¡ APB1 ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½
     uint32_t PCLK1 = HAL_RCC_GetPCLK1Freq();
     uint32_t TIM6BaseCLK;
 
-    // 2. ¸ù¾Ý APB1 Ô¤·ÖÆµÏµÊý¼ÆËã TIM6 µÄÊäÈëÊ±ÖÓ (·ÖÆµÏµÊý != 1 Ê±£¬¶¨Ê±Æ÷Ê±ÖÓ×Ô¶¯ x2£¬¼´ 90MHz)
+    // 2. ï¿½ï¿½ï¿½ï¿½ APB1 Ô¤ï¿½ï¿½ÆµÏµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ TIM6 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ (ï¿½ï¿½ÆµÏµï¿½ï¿½ != 1 Ê±ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ô¶ï¿½ x2ï¿½ï¿½ï¿½ï¿½ 90MHz)
     if ((RCC->CFGR & RCC_CFGR_PPRE1) != RCC_CFGR_PPRE1_DIV1) {
         TIM6BaseCLK = PCLK1 * 2U;
     }
@@ -33,66 +33,66 @@ void DAC_set_waveform_period_ms(uint32_t periodMs) {
         TIM6BaseCLK = PCLK1;
     }
 
-    // 3. ´Ó htim6 ¾ä±úÖ±½Ó¶ÁÈ¡µ±Ç°µÄ PSC (Ô¤·ÖÆµÖµ)
-    // ¼ÙÉèÔÚ CubeMX ÅäÖÃÁË PSC Îª 30 - 1£¬ÕâÀï¶Á³öÀ´µÄ PSC + 1 ¾ÍÊÇ 30
+    // 3. ï¿½ï¿½ htim6 ï¿½ï¿½ï¿½Ö±ï¿½Ó¶ï¿½È¡ï¿½ï¿½Ç°ï¿½ï¿½ PSC (Ô¤ï¿½ï¿½ÆµÖµ)
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ CubeMX ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ PSC Îª 30 - 1ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ PSC + 1 ï¿½ï¿½ï¿½ï¿½ 30
     uint32_t PSC = htim6.Instance->PSC + 1U;
 
-    // 4. ¼ÆËã TIM6 ¼ÆÊýÆ÷Êµ¼ÊµÄÔËÐÐÆµÂÊ (ÀýÈç 90MHz / 30 = 3MHz)
+    // 4. ï¿½ï¿½ï¿½ï¿½ TIM6 ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Êµï¿½Êµï¿½ï¿½ï¿½ï¿½ï¿½Æµï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½ 90MHz / 30 = 3MHz)
     uint32_t cntFreq = TIM6BaseCLK / PSC;
 
-    // 5. ËãÄ¿±ê ARR (ÓÃ uint64_t ·ÀÖ¹ 3,000,000 * u_periodMs ÖÐ¼ä³Ë·¨Òç³ö)
-    // ¹«Ê½: ARR = (cntFreq * periodMs) / (DAC_LUT_LENGTH * 1000) - 1
+    // 5. ï¿½ï¿½Ä¿ï¿½ï¿½ ARR (ï¿½ï¿½ uint64_t ï¿½ï¿½Ö¹ 3,000,000 * u_periodMs ï¿½Ð¼ï¿½Ë·ï¿½ï¿½ï¿½ï¿½)
+    // ï¿½ï¿½Ê½: ARR = (cntFreq * periodMs) / (DAC_LUT_LENGTH * 1000) - 1
     targetARR = ((uint64_t)cntFreq * periodMs) / (DAC_LUT_LENGTH * 1000U) - 1U;
 
-    // 6. 16 Î»¶¨Ê±Æ÷±ß½ç±£»¤ (·ÀÖ¹ ARR ³¬¹ý 65535)
+    // 6. 16 Î»ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ß½ç±£ï¿½ï¿½ (ï¿½ï¿½Ö¹ ARR ï¿½ï¿½ï¿½ï¿½ 65535)
     if (targetARR > 65535U) {
         targetARR = 65535U;
     }
 
-    // 7. Ö±½ÓÐ´Èë ARR ¼Ä´æÆ÷ (Preload ÒÑ¿ªÆô£¬½«ÔÚÏÂÒ»¸ö¸üÐÂÊÂ¼þÎÞ·ìÉúÐ§)
+    // 7. Ö±ï¿½ï¿½Ð´ï¿½ï¿½ ARR ï¿½Ä´ï¿½ï¿½ï¿½ (Preload ï¿½Ñ¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½Þ·ï¿½ï¿½ï¿½Ð§)
     __HAL_TIM_SET_AUTORELOAD(&htim6, (uint32_t) targetARR);
 }
 
 void DAC_wave_compute(uint16_t* p_buffer, e_waveType_t e_waveMode, uint32_t FSR) {
-	// Ã¿´Î²½½øµÄ»¡¶ÈÖµ
+	// Ã¿ï¿½Î²ï¿½ï¿½ï¿½ï¿½Ä»ï¿½ï¿½ï¿½Öµ
 	float step = PI_2 / (float)DAC_LUT_LENGTH; 
 	float val = 0.0f;
 	float FSRRatio = FSR / 3300.0f;
 
 	switch(e_waveMode) {
-		case SINUSOIDAL: // ÕýÏÒ²¨
+		case SINUSOIDAL: // ï¿½ï¿½ï¿½Ò²ï¿½
 			for(uint32_t i = 0; i < DAC_LUT_LENGTH; i++) {
 				val = sinf(step * i);
-				// sinf ·¶Î§ -1 ~ +1£¬Ì§Éý²¢Ñ¹±âµ½ 0 ~ 4095 
+				// sinf ï¿½ï¿½Î§ -1 ~ +1ï¿½ï¿½Ì§ï¿½ï¿½ï¿½ï¿½Ñ¹ï¿½âµ½ 0 ~ 4095 
 				p_buffer[i] = (uint16_t)(2047.5f * (val + 1.0f) * FSRRatio); 
 			}
 			break;
 				
-		case TRIANGULAR: // Èý½Ç²¨
+		case TRIANGULAR: // ï¿½ï¿½ï¿½Ç²ï¿½
 			for(uint32_t i = 0; i < DAC_LUT_LENGTH; i++) {
-				// ·Ö¸îÇ°°ëÖÜÆÚ£¨ÅÀÉý£©ºÍºó°ëÖÜÆÚ£¨»ØÂä£© 
+				// ï¿½Ö¸ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½Ú£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íºï¿½ï¿½ï¿½ï¿½ï¿½Ú£ï¿½ï¿½ï¿½ï¿½ä£© 
 				if ((step * i) < PI_1) {
-						// 0 µ½ PI Ó³ÉäÎª 0.0f µ½ 1.0f
+						// 0 ï¿½ï¿½ PI Ó³ï¿½ï¿½Îª 0.0f ï¿½ï¿½ 1.0f
 						val = (step * i) / PI_1; 
 				} 
 				else {
-						// PI µ½ 2*PI Ó³ÉäÎª 1.0f µ½ 0.0f
+						// PI ï¿½ï¿½ 2*PI Ó³ï¿½ï¿½Îª 1.0f ï¿½ï¿½ 0.0f
 						val = 2.0f - ((step * i) / PI_1); 
 				}
 				p_buffer[i] = (uint16_t)(4095.0f * val * FSRRatio); 
 			}
 			break;
 				
-		case SAWTOOTH: // ¾â³Ý²¨
+		case SAWTOOTH: // ï¿½ï¿½Ý²ï¿½
 			for(uint32_t i = 0; i < DAC_LUT_LENGTH; i++) {
-				// current_phase ·¶Î§ 0 ~ 2*PI£¬ÏßÐÔÓ³Éäµ½ 0 ~ 4095
+				// current_phase ï¿½ï¿½Î§ 0 ~ 2*PIï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó³ï¿½äµ½ 0 ~ 4095
 				p_buffer[i] = (uint16_t)(4095.0f * ((step * i) / PI_2) * FSRRatio); 
 			}
 			break;
 				
 		default:
 				for(uint32_t i = 0; i < DAC_LUT_LENGTH; i++) {
-					p_buffer[i] = 2048; // Òì³£Ä¬ÈÏÊä³ö 1.65V ÖÐ¼äÖµ
+					p_buffer[i] = 2048; // ï¿½ì³£Ä¬ï¿½ï¿½ï¿½ï¿½ï¿½ 1.65V ï¿½Ð¼ï¿½Öµ
 				}
 				break;
 	}

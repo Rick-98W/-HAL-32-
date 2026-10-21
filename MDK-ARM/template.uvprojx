@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F429xx</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include;../Components;../Packages/ebtn;../Packages/RingBuffer;../Packages/OLED;../Packages/u8g2;../Components/menu</IncludePath>
+              <IncludePath>../Core/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include;../Components;../Packages/ebtn;../Packages/RingBuffer;../Packages/OLED;../Packages/u8g2;../Components/menu;..\Packages\WaveformAnalyzer</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -1347,6 +1347,16 @@
               <FileType>5</FileType>
               <FilePath>..\Components\serial_export_task.h</FilePath>
             </File>
+            <File>
+              <FileName>wavAnl_service.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Components\wavAnl_service.c</FilePath>
+            </File>
+            <File>
+              <FileName>wavAnl_service.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Components\wavAnl_service.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1651,6 +1661,21 @@
               <FileName>menu_ADC_suppl.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\Components\menu\menu_ADC_suppl.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Packages/waveAnalyzer</GroupName>
+          <Files>
+            <File>
+              <FileName>waveform_analyzer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Packages\WaveformAnalyzer\waveform_analyzer.c</FilePath>
+            </File>
+            <File>
+              <FileName>waveform_analyzer.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Packages\WaveformAnalyzer\waveform_analyzer.h</FilePath>
             </File>
           </Files>
         </Group>

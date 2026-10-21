@@ -7,6 +7,8 @@
 static uint32_t s_Vrefint = 0;
 static bool isDoubled = false;
 static uint32_t s_writeIdx = 0;
+static bool s_frozen = false;
+static volatile bool s_wrapped = false;
 uint16_t s_ADCWaveWindow[ADC_WINDOW_SIZE];
 
 void ADC_set_TIM3_ARR(void) {
@@ -45,22 +47,46 @@ uint32_t ADC_raw_to_mv(uint16_t raw_val) {
     return ((uint32_t)raw_val * vdda) / 4095U;
 }
 
-void ADC_freeze(void) {
+bool ADC_freeze(void) {
+	if (s_frozen) return false;
+	s_frozen = true;
 	HAL_TIM_Base_Stop(&htim3);
 	HAL_ADC_Stop_DMA(&hadc1);
 	s_writeIdx = ADC_WINDOW_SIZE - __HAL_DMA_GET_COUNTER(hadc1.DMA_Handle);
+	return true;
 }
 
 void ADC_resume(void) {
+	if (!s_frozen) return;
+	s_frozen = false;
+	s_wrapped = false;
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)s_ADCWaveWindow, ADC_WINDOW_SIZE);
 	HAL_TIM_Base_Start(&htim3);
 }
 
+/* Pure read: does not freeze or restart DMA. */
+bool ADC_is_window_ready(void) {
+	if (s_wrapped) return true;
+	uint32_t len = isDoubled ? ADC_WINDOW_SIZE : ADC_WINDOW_SIZE / 2U;
+	return (ADC_WINDOW_SIZE - __HAL_DMA_GET_COUNTER(hadc1.DMA_Handle)) >= len;
+}
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
+	if (hadc == &hadc1) s_wrapped = true;
+}
+
+void ADC_reset_window(void) {
+	if (s_frozen) return;
+	HAL_ADC_Stop_DMA(&hadc1);
+	s_wrapped = false;
+	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)s_ADCWaveWindow, ADC_WINDOW_SIZE);
+}
+
 void ADC_set_ratio(bool is) {
-	if (isDoubled != is) {
-		isDoubled = is;
-		ADC_set_TIM3_ARR();
-	}
+	if (isDoubled == is) return;
+	isDoubled = is;
+	ADC_set_TIM3_ARR();
+	ADC_reset_window();
 }
 
 bool ADC_get_ratio(void) {

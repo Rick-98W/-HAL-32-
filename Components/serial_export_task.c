@@ -49,7 +49,7 @@ void serial_export_ADC_wave(void) {
 	uint32_t len;
 	uint32_t start;
 	if (serial_export_busy()) return;
-	ADC_freeze();
+	if (!ADC_freeze()) return;
 	s_ADC_wave.buf = ADC_get_buffer(&len, &start);
 	s_ADC_wave.start = start;
 	serial_export_start(ADC_wave_sample, &s_ADC_wave, len, ADC_resume);

@@ -164,99 +164,101 @@ static uint8_t USART_stream_load(void)
     return 0; 
 }
 
-// ... (USART_parse_command 保持不变) ...
-static void USART_parse_command(char *cmd)
-{
-    USART_printf("Command Received:%s\r\n",cmd);
-		// 标志位：记录这一句话里有没有我们要干的活
-		// 如果干了活，置1；如果到最后还是0，说明是废话
-		uint8_t isHandled = 0;
-		
-		char *pToggle = strstr(cmd, "Toggle");
-    if (pToggle != NULL)
-    {
-        isHandled = 1; // 标记：我们干活了
-        
-        // 跳过 "Toggle" 这6个字母，从后面开始扫荡
-        char *pScan = pToggle + 6; 
-        uint8_t toggle_cnt = 0;
-
-        while (*pScan != '\0' && *pScan != '\r' && *pScan != '\n')
-        {
-            // 只要发现是 '1'~'6' 的数字，立刻开火
-            if (*pScan >= '1' && *pScan <= '6')
-            {
-                int id = *pScan - '0';
-                LED_toggle_phase(id - 1);
-                USART_printf("[CMD] Toggle: LED%d\r\n", id);
-                toggle_cnt++;
-            }
-            pScan++; // 继续往后找，绝不回头
-        }
-        
-        if (toggle_cnt == 0) USART_printf("[WRN] Toggle cmd found, but no ID (1-6)!\r\n");
+static void USART_parse_command(char *cmd) {
+    // Filter out leading spaces or tabs for better robustness
+    while (*cmd == ' ' || *cmd == '\t') {
+        cmd++;
     }
 
-    // ============================================================
-    // 2. 【电源控制模块】: On / Off
-    // ============================================================
-    // 使用 strstr 允许指令夹在句子里，但要注意 "Only" 这种词包含 "On"
-    // 为了防止误判，这里稍微严格一点，或者你如果不介意误判就直接用
+    USART_printf("Command Received: %s\r\n", cmd);
     
-    // 优先判断 Off (因为 Off 通常权重高，或者处于安全考虑)
-    if (strstr(cmd, "Off") != NULL)
-    {
-        LED_set_blackout(1);
-        USART_printf("[SYS] System: OFFLINE (Blackout)\r\n");
-        isHandled = 1;
-    }
-    // 判断 On (且当前没有找到 Off，防止 "Turn On then Turn Off" 产生冲突，
-    // 或者你可以去掉 else 让它支持先开再关)
-    else if (strstr(cmd, "On") != NULL) 
-    {
-        LED_set_blackout(0);
-        USART_printf("[SYS] System: ONLINE\r\n");
-        isHandled = 1;
-    }
+    // Flag: records whether the command has been successfully handled
+    uint8_t b_isHandled = 0;
 
     // ============================================================
-    // 3. 【状态查询模块】: Phase 查询
-    // 支持 "Check Phase 1" 或 "LED1Phase"
+    // 1. [LED Module]: Must start with "LED"
     // ============================================================
-    char *pPhase = strstr(cmd, "Phase");
-    if (pPhase != NULL)
-    {
-        isHandled = 1;
-        
-        // 策略：在整句话里找数字。
-        // 为了避免和 Toggle 的数字混淆，这里可以做得更精细，
-        // 但简单起见，我们假设 Phase 也是扫荡整句里的数字
-        char *pScan = cmd;
-        while (*pScan != '\0' && *pScan != '\r' && *pScan != '\n')
-        {
-						if (*pScan >= '1' && *pScan <= '6')
-						{
-								int id = *pScan - '0';
-								int idx = id - 1; 
+    if (strncmp(cmd, "LED", 3) == 0) {
+        b_isHandled = 1;
+        char *p_subCmd = cmd + 3; // Skip "LED" prefix to parse sub-actions
 
-								float phase_val = LED_get_phaseOffset(idx);
-								
-								USART_printf("[STS] LED%d Phase Offset: %.2f (%.0f%%)\r\n", 
-														 id, phase_val, phase_val * 100.0f);
-						}
-             pScan++;
+        if (strstr(p_subCmd, "Toggle") != NULL) {
+            char *p_scan = strstr(p_subCmd, "Toggle") + 6;
+            uint8_t toggle_cnt = 0;
+
+            while (*p_scan != '\0' && *p_scan != '\r' && *p_scan != '\n') {
+                if (*p_scan >= '1' && *p_scan <= '6') {
+                    int id = *p_scan - '0';
+                    LED_toggle_phase(id - 1);
+                    USART_printf("[CMD] LED Toggle: LED%d\r\n", id);
+                    toggle_cnt++;
+                }
+                p_scan++;
+            }
+            if (toggle_cnt == 0) {
+                USART_printf("[WRN] LED Toggle found, but no ID (1-6)!\r\n");
+            }
+        }
+        else if (strstr(p_subCmd, "Phase") != NULL) {
+            char *p_scan = p_subCmd;
+            while (*p_scan != '\0' && *p_scan != '\r' && *p_scan != '\n') {
+                if (*p_scan >= '1' && *p_scan <= '6') {
+                    int id = *p_scan - '0';
+                    float phase_val = LED_get_phaseOffset(id - 1);
+                    USART_printf("[STS] LED%d Phase Offset: %.2f (%.0f%%)\r\n", 
+                                 id, phase_val, phase_val * 100.0f);
+                }
+                p_scan++;
+            }
+        }
+        else if (strstr(p_subCmd, "Off") != NULL) {
+            LED_set_blackout(1);
+            USART_printf("[SYS] LED: OFFLINE (Blackout)\r\n");
+        }
+        else if (strstr(p_subCmd, "On") != NULL) {
+            LED_set_blackout(0);
+            USART_printf("[SYS] LED: ONLINE\r\n");
+        }
+        else {
+            USART_printf("[WRN] LED command recognized, but missing valid action (Toggle/Phase/On/Off)!\r\n");
         }
     }
-
     // ============================================================
-    // 4. 【兜底处理】: 未知指令
+    // 2. [DAC Module]: Must start with "DAC"
     // ============================================================
-    if (isHandled == 0)
-    {
-        // 过滤空包，但不要丢弃短的未知指令（例如 "A"）
-        if (strlen(cmd) > 0)
-        {
-            USART_printf("[Unknown] I don't understand: %s\r\n", cmd);
+    else if (strncmp(cmd, "DAC", 3) == 0) {
+        b_isHandled = 1;
+        char *p_subCmd = cmd + 3;
+        
+        // TODO: Implement DAC specific parsing logic here
+        USART_printf("[SYS] DAC Sub-command received: %s\r\n", p_subCmd);
+    }
+    // ============================================================
+    // 3. [ACD Module]: Must start with "ACD"
+    // ============================================================
+    else if (strncmp(cmd, "ACD", 3) == 0) {
+        b_isHandled = 1;
+        char *p_subCmd = cmd + 3;
+        
+        // TODO: Implement ACD specific parsing logic here
+        USART_printf("[SYS] ACD Sub-command received: %s\r\n", p_subCmd);
+    }
+    // ============================================================
+    // 4. [SYS Module]: Must start with "SYS" (Temporarily empty)
+    // ============================================================
+    else if (strncmp(cmd, "SYS", 3) == 0) {
+        b_isHandled = 1;
+        char *p_subCmd = cmd + 3;
+        
+        // Temporarily left empty as requested
+        USART_printf("[SYS] SYS Sub-command received: %s\r\n", p_subCmd);
+    }
+    // ============================================================
+    // 5. [Fallback]: No valid category prefix detected
+    // ============================================================
+    else {
+        if (strlen(cmd) > 0 && *cmd != '\r' && *cmd != '\n') {
+            USART_printf("[Unknown] Invalid category prefix: %s\r\n", cmd);
         }
     }
 }

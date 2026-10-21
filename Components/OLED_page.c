@@ -2,6 +2,7 @@
 #include "stdio.h"
 #include <menu_item.h>
 #include <OLED_service.h>
+#include <wavAnl_service.h>
 #include "main.h"
 #include "u8g2.h"
 
@@ -41,6 +42,29 @@ static void OLED_LED_toggle_page_render(u8g2_t *u8g2) {
 
 static void OLED_LOG_page_render(u8g2_t *u8g2) {
 	u8g2_DrawStr(u8g2, 0, 8, "LOG Presenting...");
+}
+
+static void OLED_wave_param_page_render(u8g2_t *u8g2) {
+	u8g2_DrawStr(u8g2, 0, 8, "Wave Param List");
+	float period;
+	float vpp;
+	uint8_t index;
+	const char* type = wavAnl_menu_info(&period, &vpp, &index);
+	if (type == NULL) {
+		u8g2_DrawStr(u8g2, 0, 24, "waiting for sampling...");
+	}
+	else {
+		u8g2_DrawStr(u8g2, 0, 16, "wave type:");
+		u8g2_DrawStr(u8g2, 64, 16, type);
+		if (index != 255) {
+			char buf[24];
+			unsigned long period_x1000 = (unsigned long)(period * 1000.0f + 0.5f);
+			snprintf(buf, sizeof(buf), "period: %lu.%03lu ms", period_x1000 / 1000U, period_x1000 % 1000U);
+			u8g2_DrawStr(u8g2, 0, 24, buf);
+			snprintf(buf, sizeof(buf), "vpp: %lu mV", (unsigned long)(vpp * 1000.0f + 0.5f));
+			u8g2_DrawStr(u8g2, 0, 32, buf);
+		}
+	}
 }
 
 static void OLED_draw_items(u8g2_t *u8g2, const menuItem_t *page, const menuItem_t *selected) {
@@ -126,6 +150,9 @@ void OLED_page_render(void) {
 			break;
 		case MENU_MODE_VALUE_ADJUST:
 			OLED_value_page_render(u8g2, item, menu_value_is_editing());
+			break;
+		case MENU_MODE_WAVE_PARAM:
+			OLED_wave_param_page_render(u8g2);
 			break;
 		default:
 			break;

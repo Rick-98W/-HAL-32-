@@ -16,7 +16,7 @@ static void LED_action_blackout(void) {LED_set_blackout(1);}
 static void LED_action_lightup(void) {LED_set_blackout(0);}
 
 static void LED_toggle_enter(void) {
-	menu_led_toggle_enter();
+	menu_LED_toggle_enter();
 }
 
 void menu_LED_suppl_init(menuItem_t *parent) {
