@@ -113,7 +113,7 @@ void menu_navigate(e_menuKey_t e_key) {
 			break;
 
 		case MENU_KEY_BACK:
-			if ((sp_currentPage != NULL) && (sp_currentPage->p_parent != NULL)) {
+			if ((sp_currentPage->p_parent != NULL)) {
 				sp_currentItem = sp_currentPage;
 				sp_currentPage = sp_currentPage->p_parent;
 				USART_printf("BACK\r\n");
@@ -172,7 +172,7 @@ void menu_bind_action(menuItem_t *p_item,
 }
 
 void menu_bind_value(menuItem_t *p_item,
-	int16_t *p_value,
+	int16_t* p_value,
 	int16_t valueMin,
 	int16_t valueMax,
 	void (*fn_value_enter_callback)(const menuItem_t *),
@@ -210,6 +210,7 @@ void menu_focus_item(menuItem_t *p_item) {
 	if (p_item == NULL || sp_currentPage == NULL) {
 		return;
 	}
+	if (p_item->p_parent != sp_currentPage) return;
 	for (menuItem_t *item = sp_currentPage->p_child; item != NULL; item = item->p_next) {
 		if (item == p_item) {
 			sp_currentItem = p_item;

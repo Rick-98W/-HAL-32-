@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F429xx</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include;../Components;../Packages/ebtn;../Packages/RingBuffer;../Packages/OLED;../Packages/u8g2;../Components/menu;..\Packages\WaveformAnalyzer</IncludePath>
+              <IncludePath>../Core/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include;../Components;../Packages/ebtn;../Packages/RingBuffer;../Packages/OLED;../Packages/u8g2;../Components/menu;..\Packages\WaveformAnalyzer;..\Packages\MemoryPool</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -1318,6 +1318,16 @@
               <FilePath>..\Components\DAC_service.h</FilePath>
             </File>
             <File>
+              <FileName>ADC_DAC_sync.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Components\ADC_DAC_sync.c</FilePath>
+            </File>
+            <File>
+              <FileName>ADC_DAC_sync.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Components\ADC_DAC_sync.h</FilePath>
+            </File>
+            <File>
               <FileName>knob_task.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Components\knob_task.c</FilePath>
@@ -1401,6 +1411,16 @@
               <FileName>OLEDfont.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\Packages\OLED\OLEDfont.h</FilePath>
+            </File>
+            <File>
+              <FileName>memory_pool.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Packages\MemoryPool\memory_pool.c</FilePath>
+            </File>
+            <File>
+              <FileName>memory_pool.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Packages\MemoryPool\memory_pool.h</FilePath>
             </File>
           </Files>
         </Group>

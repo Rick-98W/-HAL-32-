@@ -18,23 +18,12 @@ static const menuItem_t *s_valueItem = NULL;
 static int16_t s_editValue = 0;
 static bool s_valueEditing = false;
 
-menu_mode_t menu_get_mode(void) {
-	return s_menu_mode;
-}
-
-static void menu_return_normal_mode(void) {
-	s_valueItem = NULL;
-	s_valueEditing = false;
-	s_menu_mode = MENU_MODE_NORMAL;
-	OLED_proc();
+static int16_t value_map(uint32_t raw, int16_t valMin, int16_t valMax) {
+	return (int16_t)(valMin + (int32_t)((raw * (uint32_t)(valMax - valMin) + 2047) / 4095));
 }
 
 static void menu_log_set_flag(void) {
 	s_menu_mode = MENU_MODE_LOG;
-}
-
-static int16_t value_map(uint32_t raw, int16_t valMin, int16_t valMax) {
-	return (int16_t)(valMin + (int32_t)((raw * (uint32_t)(valMax - valMin) + 2047) / 4095));
 }
 
 static void menu_on_knob_change(uint32_t raw) {
@@ -46,6 +35,36 @@ static void menu_on_knob_change(uint32_t raw) {
 		s_editValue = val;
 		OLED_proc();
 	}
+}
+
+void menu_init(void) {
+	//											NODE						NAME			PAGEID			NEXT									PREV						PARENT				CHILD		
+	menu_create_submenu(&s_rootItem,       "Main",   MAIN_PAGE,   NULL,              NULL,              NULL,        &s_mainLEDItem);
+	menu_create_submenu(&s_mainLEDItem,    "LED",    LED_PAGE,    &s_mainADCItem,    NULL,              &s_rootItem, NULL);
+	menu_create_submenu(&s_mainADCItem,    "ADC",    ADC_PAGE,    &s_mainSystemItem, &s_mainLEDItem,    &s_rootItem, NULL);
+	menu_create_submenu(&s_mainSystemItem, "System", SYSTEM_PAGE, &s_logItem,        &s_mainADCItem,    &s_rootItem, NULL);
+	menu_create_submenu(&s_logItem,        "Log",    LOG_PAGE,    NULL,              &s_mainSystemItem, &s_rootItem, NULL);
+	menu_bind_action(&s_logItem, menu_log_set_flag);
+
+	menu_LED_suppl_init(&s_mainLEDItem);
+	menu_ADC_suppl_init(&s_mainADCItem);
+	menu_node_init(&s_rootItem);
+	knob_register_change_cb(menu_on_knob_change);
+}
+
+menu_mode_t menu_get_mode(void) {
+	return s_menu_mode;
+}
+
+const menuItem_t *menu_get_editing_item(void) {
+	return (s_menu_mode == MENU_MODE_VALUE_ADJUST) ? s_valueItem : NULL;
+}
+
+static void menu_return_normal_mode(void) {
+	s_valueItem = NULL;
+	s_valueEditing = false;
+	s_menu_mode = MENU_MODE_NORMAL;
+	OLED_proc();
 }
 
 void menu_value_enter(const menuItem_t *item) {
@@ -63,21 +82,6 @@ void menu_LED_toggle_enter(void) {
 
 void menu_ADC_param_enter(void) {
 	s_menu_mode = MENU_MODE_WAVE_PARAM;
-}
-
-void menu_init(void) {
-	//											NODE						NAME			PAGEID			NEXT									PREV						PARENT				CHILD		
-	menu_create_submenu(&s_rootItem,       "Main",   MAIN_PAGE,   NULL,              NULL,              NULL,        &s_mainLEDItem);
-	menu_create_submenu(&s_mainLEDItem,    "LED",    LED_PAGE,    &s_mainADCItem,    NULL,              &s_rootItem, NULL);
-	menu_create_submenu(&s_mainADCItem,    "ADC",    ADC_PAGE,    &s_mainSystemItem, &s_mainLEDItem,    &s_rootItem, NULL);
-	menu_create_submenu(&s_mainSystemItem, "System", SYSTEM_PAGE, &s_logItem,        &s_mainADCItem,    &s_rootItem, NULL);
-	menu_create_submenu(&s_logItem,        "Log",    LOG_PAGE,    NULL,              &s_mainSystemItem, &s_rootItem, NULL);
-	menu_bind_action(&s_logItem, menu_log_set_flag);
-
-	menu_LED_suppl_init(&s_mainLEDItem);
-	menu_ADC_suppl_init(&s_mainADCItem);
-	menu_node_init(&s_rootItem);
-	knob_register_change_cb(menu_on_knob_change);
 }
 
 bool menu_value_is_editing(void) {

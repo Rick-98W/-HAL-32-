@@ -37,6 +37,7 @@
 #include <button_task.h>
 #include <USART_task.h>
 #include <ADC_service.h>
+#include <memory_pool.h>
 
 /* USER CODE END Includes */
 
@@ -122,7 +123,7 @@ int main(void)
 	menu_init();
 	DAC_init();
 	ADC_init();
-
+	MP_init();
   /* USER CODE END 2 */
 
   /* Infinite loop */

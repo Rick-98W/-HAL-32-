@@ -42,6 +42,7 @@ typedef enum {
 
 void menu_init(void);
 menu_mode_t menu_get_mode(void);
+const menuItem_t *menu_get_editing_item(void);
 void menu_handle_key(menu_input_t input);
 void menu_value_enter(const menuItem_t *item);
 void menu_LED_toggle_enter(void);

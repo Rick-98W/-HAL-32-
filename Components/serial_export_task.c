@@ -1,6 +1,8 @@
 #include <serial_export_task.h>
 #include <USART_task.h>
 #include <ADC_service.h>
+#include <memory_pool.h>
+#include "stddef.h"
 
 typedef struct {
 	const uint16_t* buf;
@@ -14,15 +16,31 @@ static uint32_t s_count;
 static uint32_t s_idx;
 static bool s_busy = false;
 static ADC_wave_ctx_t s_ADC_wave;
+int16_t *s_LUT;
 
 bool serial_export_start(serial_export_src_t src, void *ctx, uint32_t count, serial_export_done_t on_done) {
 	if (s_busy) return false;
+	if (!ADC_is_window_ready()) {
+        USART_printf("waveform: window not full, skip\r\n");
+        return false;
+    }
 	s_src = src;
 	s_ctx = ctx;
 	s_count = count;
 	s_done = on_done;
 	s_idx = 0;
 	s_busy = true;
+	s_LUT = (int16_t *)MP_alloc(count * sizeof(int16_t));
+  if (s_LUT == NULL) {
+		USART_printf("[ERR] memory allocate failed, export stopped\r\n");
+		s_busy = false;
+    return false;
+  }
+	while (s_idx < s_count) {
+		*(s_LUT + s_idx) = s_src(s_ctx, s_idx);
+		s_idx++;
+	}
+	s_idx = 0;
 	return true;
 }
 
@@ -33,14 +51,15 @@ bool serial_export_busy(void) {
 void serial_export_proc(void) {
 	if (!s_busy) return;
 	if (s_idx < s_count) {
-		USART_printf("%lu\n", (unsigned long)s_src(s_ctx, s_idx++));
+		USART_printf("%d\n", (int)s_LUT[s_idx++]);
 		return;
 	}
+	MP_free(s_LUT);
 	s_busy = false;
-	s_done();
+	if (s_done != NULL) s_done();
 }
 
-static uint32_t ADC_wave_sample(void *ctx, uint32_t index) {
+static uint16_t ADC_wave_sample(void *ctx, uint32_t index) {
 	const ADC_wave_ctx_t *wave = ctx;
 	return ADC_raw_to_mv(wave->buf[(wave->start + index) % ADC_WINDOW_SIZE]);
 }
@@ -49,8 +68,7 @@ void serial_export_ADC_wave(void) {
 	uint32_t len;
 	uint32_t start;
 	if (serial_export_busy()) return;
-	if (!ADC_freeze()) return;
 	s_ADC_wave.buf = ADC_get_buffer(&len, &start);
 	s_ADC_wave.start = start;
-	serial_export_start(ADC_wave_sample, &s_ADC_wave, len, ADC_resume);
+	serial_export_start(ADC_wave_sample, &s_ADC_wave, len, NULL);
 }

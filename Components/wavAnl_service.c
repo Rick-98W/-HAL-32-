@@ -1,6 +1,7 @@
 #include <wavAnl_service.h>
 #include <waveform_analyzer.h>
 #include <ADC_service.h>
+#include <DAC_service.h>
 #include <USART_task.h>
 #include "tim.h"
 
@@ -13,8 +14,27 @@ typedef struct {
     uint32_t start;
 } ADC_window_t;
 
+/* Settings that the analysis depends on. */
+typedef struct {
+    int16_t period;
+    int16_t FSR;
+    e_waveType_t waveType;
+    bool ratio;
+} wavAnl_config_t;
+
 static waveformInfo s_info = {.waveform_type = ADC_WAVEFORM_UNKNOWN};
 static bool s_has_result = false;
+static wavAnl_config_t s_resultCfg;
+
+static wavAnl_config_t wavAnl_current_config(void) {
+    wavAnl_config_t cfg = {
+        .period = DAC_get_period(),
+        .FSR = DAC_get_FSR(),
+        .waveType = DAC_get_waveType(),
+        .ratio = ADC_get_ratio(),
+    };
+    return cfg;
+}
 
 static float ADC_window_sample(void *ctx, uint32_t index) {
     const ADC_window_t *win = ctx;
@@ -35,9 +55,7 @@ bool wavAnl_update(void) {
     uint32_t start;
     ADC_window_t win;
 
-    s_info = (waveformInfo){.waveform_type = ADC_WAVEFORM_UNKNOWN};
-    s_has_result = false;
-
+    /* A failed attempt keeps the previous result; wavAnl_is_valid() decides whether it still applies. */
     if (!ADC_is_window_ready()) {
         USART_printf("waveform: window not full, skip\r\n");
         return false;
@@ -51,6 +69,7 @@ bool wavAnl_update(void) {
     float sample_interval_s = wave_sample_interval_s();
     s_info = wave_analyze(ADC_window_sample, &win, len, sample_interval_s);
     s_has_result = true;
+    s_resultCfg = wavAnl_current_config();
     ADC_resume();
     return true;
 }
@@ -90,8 +109,34 @@ void wavAnl_print(void) {
                  h2_pct, h3_pct, h5_pct);
 }
 
+bool wavAnl_is_valid(void) {
+    if (!s_has_result) return false;
+    wavAnl_config_t cur = wavAnl_current_config();
+    return cur.period == s_resultCfg.period
+        && cur.FSR == s_resultCfg.FSR
+        && cur.waveType == s_resultCfg.waveType
+        && cur.ratio == s_resultCfg.ratio;
+}
+
+float wavAnl_get_freq(void) {
+    return wavAnl_is_valid() ? s_info.frequency : 0.0f;
+}
+
+float wavAnl_get_period(void) {
+    return wavAnl_is_valid() ? s_info.period : 0.0f;
+}
+
+float wavAnl_get_vpp(void) {
+    return wavAnl_is_valid() ? s_info.vpp : 0.0f;
+}
+
+const char* wavAnl_get_type_name(void) {
+    if (!wavAnl_is_valid()) return "UNKNOWN";
+    return wave_type_name(s_info.waveform_type);
+}
+
 const char* wavAnl_menu_info(float* period, float* vpp, uint8_t* index) {
-	if (!s_has_result) return NULL;
+	if (!wavAnl_is_valid()) return NULL;
 	*index = s_info.waveform_type;
 	*period = s_info.period;
 	*vpp = s_info.vpp;

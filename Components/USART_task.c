@@ -1,44 +1,50 @@
 #include <USART_task.h>
 #include "usart.h"
 #include <LED_task.h>
-#include "ringbuffer.h" // ¡¾ÐÂÔö¡¿ÒýÈë RingBuffer
+#include <DAC_service.h>
+#include <ADC_DAC_sync.h>
+#include <ADC_service.h>
+#include <wavAnl_service.h>
+#include <menu_ADC_suppl.h>
+#include <serial_export_task.h>
+#include "ringbuffer.h" // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ RingBuffer
 #include "stdio.h"
 #include "stdarg.h"
 #include "string.h"
 
 /* --- Configuration --- */
 #define USART_RX_RING_SIZE   2048
-#define USART_RX_LINE_MAX    256     // µ¥ÌõÖ¸Áî×î´ó³¤¶È
+#define USART_RX_LINE_MAX    256     // ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ó³¤¶ï¿½
 
-#define USART_TX_RING_SIZE   2048    // ¡¾ÐÂÔö¡¿TX RingBuffer ´óÐ¡ (×ã¹»´óÒÔ»º³åÍ»·¢ÈÕÖ¾)
-#define USART_TX_DMA_SIZE    512     // ¡¾ÐÂÔö¡¿µ¥´Î DMA °áÔËµÄ×î´ó³¤¶È
+#define USART_TX_RING_SIZE   2048    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½TX RingBuffer ï¿½ï¿½Ð¡ (ï¿½ã¹»ï¿½ï¿½ï¿½Ô»ï¿½ï¿½ï¿½Í»ï¿½ï¿½ï¿½ï¿½Ö¾)
+#define USART_TX_DMA_SIZE    512     // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ DMA ï¿½ï¿½ï¿½Ëµï¿½ï¿½ï¿½ó³¤¶ï¿½
 
 /* --- Private Variables --- */
 
-// 1. ½ÓÊÕÏà¹Ø
+// 1. ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 static struct rt_ringbuffer s_RxRingCtrl;
 static uint8_t s_RxRingPool[USART_RX_RING_SIZE];
-static uint8_t s_RxDMABuffer[USART_RX_LINE_MAX];       // DMA Ð´ÕâÀï
+static uint8_t s_RxDMABuffer[USART_RX_LINE_MAX];       // DMA Ð´ï¿½ï¿½ï¿½ï¿½
 
-// ´«¸øAPP ÓÃµÄ¡°ÏßÐÔ¡±ÔÝ´æÇø (½â¾ö RingBuffer »Ø¾íÎÊÌâ)
+// ï¿½ï¿½ï¿½ï¿½APP ï¿½ÃµÄ¡ï¿½ï¿½ï¿½ï¿½Ô¡ï¿½ï¿½Ý´ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½ RingBuffer ï¿½Ø¾ï¿½ï¿½ï¿½ï¿½ï¿½)
 static char s_RxAppBuffer[USART_RX_LINE_MAX];
-static uint16_t s_RxLineIdx = 0;                       // Ö¸ÁîÆ´´ÕÓÎ±ê
+static uint16_t s_RxLineIdx = 0;                       // Ö¸ï¿½ï¿½Æ´ï¿½ï¿½ï¿½Î±ï¿½
 
-// 2. ·¢ËÍÏà¹Ø
-// RingBuffer ¿ØÖÆ¿éÓëÄÚ´æ³Ø
+// 2. ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+// RingBuffer ï¿½ï¿½ï¿½Æ¿ï¿½ï¿½ï¿½ï¿½Ú´ï¿½ï¿½
 static struct rt_ringbuffer s_TxRingCtrl;
 static uint8_t s_TxRingPool[USART_TX_RING_SIZE];
 
-// DMA ×¨ÓÃµÄ¡°ÏßÐÔ¡±ÔÝ´æÇø (½â¾ö RingBuffer »Ø¾íÎÊÌâ)
+// DMA ×¨ï¿½ÃµÄ¡ï¿½ï¿½ï¿½ï¿½Ô¡ï¿½ï¿½Ý´ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½ RingBuffer ï¿½Ø¾ï¿½ï¿½ï¿½ï¿½ï¿½)
 static uint8_t s_TxDMABuffer[USART_TX_DMA_SIZE];
 
-// ·¢ËÍ×´Ì¬±êÖ¾ (1: DMAÕýÔÚÃ¦, 0: DMA¿ÕÏÐ)
+// ï¿½ï¿½ï¿½ï¿½×´Ì¬ï¿½ï¿½Ö¾ (1: DMAï¿½ï¿½ï¿½ï¿½Ã¦, 0: DMAï¿½ï¿½ï¿½ï¿½)
 static volatile uint8_t b_TxDMABusy = 0;
 
 /* --- Private Function Prototypes --- */
 static void USART_parse_command(char *cmd);
-static void USART_trigger_TX(void);  //¡°ÌáÐÑ·¢»õ¡±º¯Êý
-static uint8_t USART_stream_load(void); //É¨ÃèRx_RingBufferÒÔ³éÈ¡command¸øparseº¯Êý
+static void USART_trigger_TX(void);  //ï¿½ï¿½ï¿½ï¿½ï¿½Ñ·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+static uint8_t USART_stream_load(void); //É¨ï¿½ï¿½Rx_RingBufferï¿½Ô³ï¿½È¡commandï¿½ï¿½parseï¿½ï¿½ï¿½ï¿½
 
 /* --- Public Function Implementation --- */
 
@@ -50,10 +56,10 @@ void USART_init(void)
     __HAL_DMA_DISABLE_IT(huart1.hdmarx, DMA_IT_HT);
 
     // --- TX Init ---
-    // ³õÊ¼»¯ RingBuffer
+    // ï¿½ï¿½Ê¼ï¿½ï¿½ RingBuffer
     rt_ringbuffer_init(&s_TxRingCtrl, s_TxRingPool, USART_TX_RING_SIZE);
     
-    // ³õÊ¼×´Ì¬ DMA ÊÇÏÐ×ÅµÄ
+    // ï¿½ï¿½Ê¼×´Ì¬ DMA ï¿½ï¿½ï¿½ï¿½ï¿½Åµï¿½
     b_TxDMABusy = 0;
 }
 
@@ -64,10 +70,10 @@ void USART_proc(void)
 		}
 }
 
-// ¸ÄÔìºóµÄ printf£ºÖ»¹ÜÍùÀïÈû£¬ÈûÍêº°Ò»Éù DMA
-void USART_printf(const char *fmt, ...)
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ printfï¿½ï¿½Ö»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½êº°Ò»ï¿½ï¿½ DMA
+void USART_printf(const char* fmt, ...)
 {
-    // 1. ¸ñÊ½»¯Êý¾Ýµ½¾Ö²¿Õ»¿Õ¼ä (ËÙ¶È¼«¿ì)
+    // 1. ï¿½ï¿½Ê½ï¿½ï¿½ï¿½ï¿½ï¿½Ýµï¿½ï¿½Ö²ï¿½Õ»ï¿½Õ¼ï¿½ (ï¿½Ù¶È¼ï¿½ï¿½ï¿½)
     char temp_buf[256]; 
     va_list args;
     va_start(args, fmt);
@@ -77,195 +83,26 @@ void USART_printf(const char *fmt, ...)
     if (len <= 0) return;
 		if (len > (int)sizeof(temp_buf) - 1) len = sizeof(temp_buf) - 1;
 
-    // 2. Ñ¹Èë RingBuffer (Critical Section)
-    // ÒòÎª TxCpltCallback ÖÐ¶ÏÀïÒ²»á²Ù×÷ RingBuffer (get)£¬ËùÒÔÕâÀï±ØÐë¹ØÖÐ¶Ï±£»¤ put
+    // 2. Ñ¹ï¿½ï¿½ RingBuffer (Critical Section)
+    // ï¿½ï¿½Îª TxCpltCallback ï¿½Ð¶ï¿½ï¿½ï¿½Ò²ï¿½ï¿½ï¿½ï¿½ï¿½ RingBuffer (get)ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶Ï±ï¿½ï¿½ï¿½ put
     __disable_irq();
     
-    // Ê¹ÓÃ±ê×¼ put£¬ÂúÁË¾Í¶ªÆúÐÂÊý¾Ý£¬±£Ö¤°²È«ÐÔ
+    // Ê¹ï¿½Ã±ï¿½×¼ putï¿½ï¿½ï¿½ï¿½ï¿½Ë¾Í¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý£ï¿½ï¿½ï¿½Ö¤ï¿½ï¿½È«ï¿½ï¿½
     rt_ringbuffer_put(&s_TxRingCtrl, (uint8_t *)temp_buf, len);
 
-    // 3. ºËÐÄÂß¼­£º¼ì²é DMA ÊÇ·ñÔÚÍµÀÁ
+    // 3. ï¿½ï¿½ï¿½ï¿½ï¿½ß¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ DMA ï¿½Ç·ï¿½ï¿½ï¿½Íµï¿½ï¿½
     if (b_TxDMABusy == 0)
     {
-        // Èç¹û DMA ÏÐ×Å£¬¸Ï½ôõßËüÒ»½Å£¬ÈÃËü¿ªÊ¼¸É»î
+        // ï¿½ï¿½ï¿½ DMA ï¿½ï¿½ï¿½Å£ï¿½ï¿½Ï½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½Å£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½É»ï¿½
         USART_trigger_TX();
     }
     
     __enable_irq();
 }
 
-/* --- Private Function Implementation --- */
-
-/**
- * @brief  ¡°ÌáÐÑ·¢»õ¡±º¯Êý (DMA µ÷¶ÈÆ÷)
- * @note   ¸ºÔð´Ó RingBuffer °áÔËÊý¾Ýµ½ÏßÐÔ Buffer£¬²¢Æô¶¯ DMA
- * Õâ¸öº¯Êý¼È»á±» printf µ÷ÓÃ£¬Ò²»á±»ÖÐ¶Ï»Øµ÷µ÷ÓÃ
- */
-static void USART_trigger_TX(void)
-{
-    // 1. ÔÙ´ÎÈ·ÈÏÃ¦ÏÐ×´Ì¬ (ËäÈ»µ÷ÓÃÇ°Í¨³£ÅÐ¶Ï¹ý£¬µ«Ë«ÖØ±£ÏÕÃ»´í)
-    if (b_TxDMABusy) return;
-
-    // 2. ´Ó RingBuffer È¡»õ
-    // rt_ringbuffer_get »á×Ô¶¯´¦Àí»Ø¾í£¬²¢¸üÐÂ read_index
-    // ·µ»ØÖµÊÇÊµ¼ÊÈ¡µ½µÄ×Ö½ÚÊý
-    rt_size_t len = rt_ringbuffer_get(&s_TxRingCtrl, s_TxDMABuffer, USART_TX_DMA_SIZE);
-
-    if (len > 0)
-    {
-        // 3. ÓÐ»õ£¡±ê¼Ç×´Ì¬ÎªÃ¦
-        b_TxDMABusy = 1;
-
-        // 4. Æô¶¯ DMA ·¢ËÍ (·Ç×èÈû)
-        // ×¢Òâ£ºÕâÀïÊ¹ÓÃµÄÊÇÎÒÃÇ°áÔË³öÀ´µÄ s_TxDmaBuffer (ÏßÐÔÁ¬ÐøÄÚ´æ)
-        if (HAL_UART_Transmit_DMA(&huart1, s_TxDMABuffer, len) != HAL_OK)
-        {
-            // Èç¹ûÆô¶¯Ê§°Ü (¼«º±¼û)£¬Çå³ýÃ¦±êÖ¾£¬·ÀÖ¹ËÀËø
-            b_TxDMABusy = 0;
-        }
-    }
-    else
-    {
-        // Ã»»õÁË£¬DMA ¿ÉÒÔÐÝÏ¢ÁË
-        b_TxDMABusy = 0;
-    }
-}
-
-static uint8_t USART_stream_load(void)
-{
-    uint8_t ch;
-    
-    // Ã¿´Î´¦ÀíÒ»¸ö×Ö·û
-    while(rt_ringbuffer_getchar(&s_RxRingCtrl, &ch)){
-        
-        // 1. ½áÊø·ûÅÐ¶Ï£º¼æÈÝÐ­Òé·ÖºÅºÍ´®¿Ú¹¤¾ß³£ÓÃµÄ CR/LF
-        if (ch == ';' || ch == '\n'){
-            s_RxAppBuffer[s_RxLineIdx] = '\0'; // ·â¿Ú
-            s_RxLineIdx = 0; // ÖØÖÃ
-            return 1;        // ³É¹¦£¡
-        }
-
-        // CRLF µÄ CR Ö»×÷ÎªÐÐ½áÊøµÄÒ»²¿·Ö£¬²»·Å½øÃüÁî×Ö·û´®
-        if (ch == '\r') {
-            continue;
-        }
-        
-        // 2. Õý³£´æÈë£¨´øÒç³ö±£»¤£©
-        // ÁôÒ»¸öÎ»ÖÃ¸ø \0£¬ËùÒÔÊÇ MAX - 1
-        if (s_RxLineIdx < USART_RX_LINE_MAX - 1) {
-            s_RxAppBuffer[s_RxLineIdx++] = ch;
-        }
-        else {
-            // Òç³ö´¦Àí£ºÄã¿ÉÒÔÑ¡ÔñÇå¿ÕÖØÀ´£¬»òÕß¶ªÆúÐÂÊý¾Ý
-            // ÕâÀï¼òµ¥²ßÂÔ£ºÖØÖÃ£¬ÊÓ×÷ÉÏÒ»ÌõÖ¸Áî×÷·Ï
-            s_RxLineIdx = 0; 
-        }
-    }
-    return 0; 
-}
-
-static void USART_parse_command(char *cmd) {
-    // Filter out leading spaces or tabs for better robustness
-    while (*cmd == ' ' || *cmd == '\t') {
-        cmd++;
-    }
-
-    USART_printf("Command Received: %s\r\n", cmd);
-    
-    // Flag: records whether the command has been successfully handled
-    uint8_t b_isHandled = 0;
-
-    // ============================================================
-    // 1. [LED Module]: Must start with "LED"
-    // ============================================================
-    if (strncmp(cmd, "LED", 3) == 0) {
-        b_isHandled = 1;
-        char *p_subCmd = cmd + 3; // Skip "LED" prefix to parse sub-actions
-
-        if (strstr(p_subCmd, "Toggle") != NULL) {
-            char *p_scan = strstr(p_subCmd, "Toggle") + 6;
-            uint8_t toggle_cnt = 0;
-
-            while (*p_scan != '\0' && *p_scan != '\r' && *p_scan != '\n') {
-                if (*p_scan >= '1' && *p_scan <= '6') {
-                    int id = *p_scan - '0';
-                    LED_toggle_phase(id - 1);
-                    USART_printf("[CMD] LED Toggle: LED%d\r\n", id);
-                    toggle_cnt++;
-                }
-                p_scan++;
-            }
-            if (toggle_cnt == 0) {
-                USART_printf("[WRN] LED Toggle found, but no ID (1-6)!\r\n");
-            }
-        }
-        else if (strstr(p_subCmd, "Phase") != NULL) {
-            char *p_scan = p_subCmd;
-            while (*p_scan != '\0' && *p_scan != '\r' && *p_scan != '\n') {
-                if (*p_scan >= '1' && *p_scan <= '6') {
-                    int id = *p_scan - '0';
-                    float phase_val = LED_get_phaseOffset(id - 1);
-                    USART_printf("[STS] LED%d Phase Offset: %.2f (%.0f%%)\r\n", 
-                                 id, phase_val, phase_val * 100.0f);
-                }
-                p_scan++;
-            }
-        }
-        else if (strstr(p_subCmd, "Off") != NULL) {
-            LED_set_blackout(1);
-            USART_printf("[SYS] LED: OFFLINE (Blackout)\r\n");
-        }
-        else if (strstr(p_subCmd, "On") != NULL) {
-            LED_set_blackout(0);
-            USART_printf("[SYS] LED: ONLINE\r\n");
-        }
-        else {
-            USART_printf("[WRN] LED command recognized, but missing valid action (Toggle/Phase/On/Off)!\r\n");
-        }
-    }
-    // ============================================================
-    // 2. [DAC Module]: Must start with "DAC"
-    // ============================================================
-    else if (strncmp(cmd, "DAC", 3) == 0) {
-        b_isHandled = 1;
-        char *p_subCmd = cmd + 3;
-        
-        // TODO: Implement DAC specific parsing logic here
-        USART_printf("[SYS] DAC Sub-command received: %s\r\n", p_subCmd);
-    }
-    // ============================================================
-    // 3. [ACD Module]: Must start with "ACD"
-    // ============================================================
-    else if (strncmp(cmd, "ACD", 3) == 0) {
-        b_isHandled = 1;
-        char *p_subCmd = cmd + 3;
-        
-        // TODO: Implement ACD specific parsing logic here
-        USART_printf("[SYS] ACD Sub-command received: %s\r\n", p_subCmd);
-    }
-    // ============================================================
-    // 4. [SYS Module]: Must start with "SYS" (Temporarily empty)
-    // ============================================================
-    else if (strncmp(cmd, "SYS", 3) == 0) {
-        b_isHandled = 1;
-        char *p_subCmd = cmd + 3;
-        
-        // Temporarily left empty as requested
-        USART_printf("[SYS] SYS Sub-command received: %s\r\n", p_subCmd);
-    }
-    // ============================================================
-    // 5. [Fallback]: No valid category prefix detected
-    // ============================================================
-    else {
-        if (strlen(cmd) > 0 && *cmd != '\r' && *cmd != '\n') {
-            USART_printf("[Unknown] Invalid category prefix: %s\r\n", cmd);
-        }
-    }
-}
-
 /* --- HAL Callback Override --- */
 
-// RX »Øµ÷±£³Ö²»±ä
+// RX ï¿½Øµï¿½ï¿½ï¿½ï¿½Ö²ï¿½ï¿½ï¿½
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 {
     if (huart->Instance == USART1)
@@ -280,18 +117,289 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 }
 
 /**
- * @brief  TX ·¢ËÍÍê³É»Øµ÷
- * @note   µ± DMA °Ñ s_TxDmaBuffer ÀïµÄÊý¾Ý·¢Íêºó£¬Ó²¼þ»á×Ô¶¯µ÷Õâ¸ö
+ * @brief  TX ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É»Øµï¿½
+ * @note   ï¿½ï¿½ DMA ï¿½ï¿½ s_TxDmaBuffer ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý·ï¿½ï¿½ï¿½ï¿½Ó²ï¿½ï¿½ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
  */
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
     if (huart->Instance == USART1)
     {
-        // 1. ¸Õ²ÅÄÇ´Î·¢ËÍ½áÊøÁË£¬±ê¼ÇÎª¿ÕÏÐ
+        // 1. ï¿½Õ²ï¿½ï¿½Ç´Î·ï¿½ï¿½Í½ï¿½ï¿½ï¿½ï¿½Ë£ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½ï¿½
         b_TxDMABusy = 0;
 
-        // 2. ×ÔÎÒ¼ì²é£ºRingBuffer Àï»¹ÓÐÊ£·¹Âð£¿
-        // Èç¹ûÓÐ£¬USART_trigger_TX »áÔÙ´ÎÖÃÃ¦²¢Æô¶¯ÏÂÒ»´Î DMA
+        // 2. ï¿½ï¿½ï¿½Ò¼ï¿½é£ºRingBuffer ï¿½ï»¹ï¿½ï¿½Ê£ï¿½ï¿½ï¿½ï¿½
+        // ï¿½ï¿½ï¿½ï¿½Ð£ï¿½USART_trigger_TX ï¿½ï¿½ï¿½Ù´ï¿½ï¿½ï¿½Ã¦ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ DMA
         USART_trigger_TX();
     }
+}
+
+/* --- Private Function Implementation --- */
+
+/**
+ * @brief  ï¿½ï¿½ï¿½ï¿½ï¿½Ñ·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ (DMA ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
+ * @note   ï¿½ï¿½ï¿½ï¿½ï¿½ RingBuffer ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ýµï¿½ï¿½ï¿½ï¿½ï¿½ Bufferï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ DMA
+ * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È»á±» printf ï¿½ï¿½ï¿½Ã£ï¿½Ò²ï¿½á±»ï¿½Ð¶Ï»Øµï¿½ï¿½ï¿½ï¿½ï¿½
+ */
+static void USART_trigger_TX(void)
+{
+    // 1. ï¿½Ù´ï¿½È·ï¿½ï¿½Ã¦ï¿½ï¿½×´Ì¬ (ï¿½ï¿½È»ï¿½ï¿½ï¿½ï¿½Ç°Í¨ï¿½ï¿½ï¿½Ð¶Ï¹ï¿½ï¿½ï¿½ï¿½ï¿½Ë«ï¿½Ø±ï¿½ï¿½ï¿½Ã»ï¿½ï¿½)
+    if (b_TxDMABusy) return;
+
+    // 2. ï¿½ï¿½ RingBuffer È¡ï¿½ï¿½
+    // rt_ringbuffer_get ï¿½ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ø¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ read_index
+    // ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½Êµï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½Ö½ï¿½ï¿½ï¿½
+    rt_size_t len = rt_ringbuffer_get(&s_TxRingCtrl, s_TxDMABuffer, USART_TX_DMA_SIZE);
+
+    if (len > 0)
+    {
+        // 3. ï¿½Ð»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×´Ì¬ÎªÃ¦
+        b_TxDMABusy = 1;
+
+        // 4. ï¿½ï¿½ï¿½ï¿½ DMA ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
+        // ×¢ï¿½â£ºï¿½ï¿½ï¿½ï¿½Ê¹ï¿½Ãµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç°ï¿½ï¿½Ë³ï¿½ï¿½ï¿½ï¿½ï¿½ s_TxDmaBuffer (ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½)
+        if (HAL_UART_Transmit_DMA(&huart1, s_TxDMABuffer, len) != HAL_OK)
+        {
+            // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê§ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)ï¿½ï¿½ï¿½ï¿½ï¿½Ã¦ï¿½ï¿½Ö¾ï¿½ï¿½ï¿½ï¿½Ö¹ï¿½ï¿½ï¿½ï¿½
+            b_TxDMABusy = 0;
+        }
+    }
+    else
+    {
+        // Ã»ï¿½ï¿½ï¿½Ë£ï¿½DMA ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½
+        b_TxDMABusy = 0;
+    }
+}
+
+static uint8_t USART_stream_load(void)
+{
+    uint8_t ch;
+    
+    // Ã¿ï¿½Î´ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ö·ï¿½
+    while(rt_ringbuffer_getchar(&s_RxRingCtrl, &ch)){
+        
+        // 1. ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶Ï£ï¿½ï¿½ï¿½ï¿½ï¿½Ð­ï¿½ï¿½ÖºÅºÍ´ï¿½ï¿½Ú¹ï¿½ï¿½ß³ï¿½ï¿½Ãµï¿½ CR/LF
+        if (ch == ';' || ch == '\n'){
+            s_RxAppBuffer[s_RxLineIdx] = '\0'; // ï¿½ï¿½ï¿½
+            s_RxLineIdx = 0; // ï¿½ï¿½ï¿½ï¿½
+            return 1;        // ï¿½É¹ï¿½ï¿½ï¿½
+        }
+
+        // CRLF ï¿½ï¿½ CR Ö»ï¿½ï¿½Îªï¿½Ð½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ö£ï¿½ï¿½ï¿½ï¿½Å½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½
+        if (ch == '\r') {
+            continue;
+        }
+        
+        // 2. ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë£¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        // ï¿½ï¿½Ò»ï¿½ï¿½Î»ï¿½Ã¸ï¿½ \0ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ MAX - 1
+        if (s_RxLineIdx < USART_RX_LINE_MAX - 1) {
+            s_RxAppBuffer[s_RxLineIdx++] = ch;
+        }
+        else {
+            // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+            // ï¿½ï¿½ï¿½ï¿½òµ¥²ï¿½ï¿½Ô£ï¿½ï¿½ï¿½ï¿½Ã£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+            s_RxLineIdx = 0; 
+        }
+    }
+    return 0; 
+}
+
+static void LED_dispatch_command(char* p_subCmd);
+static void ADC_dispatch_command(char* p_subCmd);
+static void DAC_dispatch_command(char* p_subCmd);
+static void SYS_dispatch_command(char* p_subCmd);
+
+// ============================================================
+// Main Dispatcher: USART_parse_command
+// ============================================================
+static void USART_parse_command(char* cmd) {
+    if (cmd == NULL || *cmd == '\0' || *cmd == '\r' || *cmd == '\n') {
+        return;
+    }
+
+    while (*cmd == ' ' || *cmd == '\t') {
+        cmd++;
+    }
+
+    if (*cmd == '\0' || *cmd == '\r' || *cmd == '\n') {
+        return;
+    }
+
+    USART_printf("Command Received: %s\r\n", cmd);
+
+    if (strncmp(cmd, "LED", 3) == 0) {
+        LED_dispatch_command(cmd + 3);
+    }
+    else if (strncmp(cmd, "ADC", 3) == 0) {
+        ADC_dispatch_command(cmd + 3);
+    }
+    else if (strncmp(cmd, "DAC", 3) == 0) {
+        DAC_dispatch_command(cmd + 3);
+    }
+    else if (strncmp(cmd, "SYS", 3) == 0) {
+        SYS_dispatch_command(cmd + 3);
+    }
+    else {
+        USART_printf("[UNK] Invalid category prefix: %s\r\n", cmd);
+    }
+}
+
+// ============================================================
+// Module Handler Definitions
+// ============================================================
+static void LED_dispatch_command(char* p_subCmd) {
+    if (strstr(p_subCmd, "toggle") != NULL) {
+        char *p_scan = strstr(p_subCmd, "toggle") + 6;
+        uint8_t toggle_cnt = 0;
+
+        while (*p_scan != '\0' && *p_scan != '\r' && *p_scan != '\n') {
+            if (*p_scan >= '1' && *p_scan <= '6') {
+                int id = *p_scan - '0';
+                LED_toggle_phase(id - 1);
+                USART_printf("[CMD] LED toggled: LED%d\r\n", id);
+                toggle_cnt++;
+            }
+            p_scan++;
+        }
+        if (toggle_cnt == 0) {
+            USART_printf("[WRN] LED toggle found, but no ID (1-6)!\r\n");
+        }
+    }
+    else if (strstr(p_subCmd, "phase") != NULL) {
+        char *p_scan = p_subCmd;
+        while (*p_scan != '\0' && *p_scan != '\r' && *p_scan != '\n') {
+            if (*p_scan >= '1' && *p_scan <= '6') {
+                int id = *p_scan - '0';
+                float phase_val = LED_get_phaseOffset(id - 1);
+                USART_printf("[STS] LED%d Phase Offset: %.2f (%.0f%%)\r\n", 
+                             id, phase_val, phase_val * 100.0f);
+            }
+            p_scan++;
+        }
+    }
+    else if (strstr(p_subCmd, "off") != NULL) {
+        LED_set_blackout(1);
+        USART_printf("[CMD] LED: OFFLINE (Blackout)\r\n");
+    }
+    else if (strstr(p_subCmd, "on") != NULL) {
+        LED_set_blackout(0);
+        USART_printf("[CMD] LED: ONLINE\r\n");
+    }
+    else {
+        USART_printf("[WRN] LED command recognized, but missing valid action (toggle/phase/on/off)!\r\n");
+    }
+}
+
+// Reuse the cached result while settings are unchanged; otherwise analyze again.
+static bool ADC_ensure_wave_result(void) {
+    if (wavAnl_is_valid()) return true;
+    if (!wavAnl_update()) return false;
+    ADC_menu_refresh_wave();
+    return true;
+}
+
+static void ADC_dispatch_command(char* p_subCmd) {
+    if (strstr(p_subCmd, "analyze") != NULL) {
+        if (wavAnl_update()) {
+            USART_printf("[CMD] ADC wave analyzed\r\n");
+            ADC_menu_refresh_wave();
+        }
+    }
+    else if (strstr(p_subCmd, "set ratio double") != NULL) {
+        ADC_set_ratio(1);
+				ADC_menu_refresh_ratio();
+        USART_printf("[CMD] ADC ratio: double\r\n");
+    }
+    else if (strstr(p_subCmd, "set ratio single") != NULL) {
+        ADC_set_ratio(0);
+				ADC_menu_refresh_ratio();
+        USART_printf("[CMD] ADC ratio: single\r\n");
+    }
+    else if (strstr(p_subCmd, "get ratio") != NULL) {
+        USART_printf("[STS] ADC ratio: %s\r\n", ADC_get_ratio() ? "double" : "single");
+    }
+    else if (strstr(p_subCmd, "get freq") != NULL) {
+        if (ADC_ensure_wave_result()) {
+            USART_printf("[STS] ADC freq: %.1f Hz\r\n", wavAnl_get_freq());
+        }
+    }
+    else if (strstr(p_subCmd, "get period") != NULL) {
+        if (ADC_ensure_wave_result()) {
+            USART_printf("[STS] ADC period: %.3f ms\r\n", wavAnl_get_period() * 1000.0f);
+        }
+    }
+    else if (strstr(p_subCmd, "get vpp") != NULL) {
+        if (ADC_ensure_wave_result()) {
+            USART_printf("[STS] ADC vpp: %.0f mV\r\n", wavAnl_get_vpp() * 1000.0f);
+        }
+    }
+    else if (strstr(p_subCmd, "get type") != NULL) {
+        if (ADC_ensure_wave_result()) {
+            USART_printf("[STS] ADC wave type: %s\r\n", wavAnl_get_type_name());
+        }
+    }
+    else if (strstr(p_subCmd, "wave export") != NULL) {
+        serial_export_ADC_wave();
+    }
+    else {
+        USART_printf("[WRN] ADC command recognized, but missing valid action (analyze/set ratio/get ratio/get freq/get period/get vpp/get type)!\r\n");
+    }
+}
+
+static int16_t DAC_clamp_int16(long v) {
+    if (v > INT16_MAX) return INT16_MAX;
+    if (v < INT16_MIN) return INT16_MIN;
+    return (int16_t)v;
+}
+
+static const char* waveType[3] = {
+	"sinusoidal","triangular","sawtooth"
+};
+
+static void DAC_cmd_strcmp(char* p_subCmd) {
+	if (strstr(p_subCmd, "sin") != NULL) {
+		ADC_DAC_sync_set_wave(SINUSOIDAL);
+	}
+	else if (strstr(p_subCmd, "tri") != NULL) {
+		ADC_DAC_sync_set_wave(TRIANGULAR);
+	}
+	else if (strstr(p_subCmd, "saw") != NULL) {
+		ADC_DAC_sync_set_wave(SAWTOOTH);
+	}
+	USART_printf("[CMD] DAC wave type: %s\r\n", waveType[DAC_get_waveType()]);
+}
+
+static void DAC_dispatch_command(char* p_subCmd) {
+    long val;
+
+    if (sscanf(p_subCmd, " set FSR %ld", &val) == 1) {
+        ADC_DAC_sync_set_FSR(DAC_clamp_int16(val));
+        USART_printf("[CMD] DAC FSR: %d\r\n", DAC_get_FSR());
+				DAC_menu_refresh_FSR();
+    }
+    else if (sscanf(p_subCmd, " set period %ld", &val) == 1) {
+        ADC_DAC_sync_set_period(DAC_clamp_int16(val));
+        USART_printf("[CMD] DAC period: %d\r\n", DAC_get_period());
+				DAC_menu_refresh_period();
+    }
+    else if (strstr(p_subCmd, "set wave type") != NULL) {
+        DAC_cmd_strcmp(p_subCmd);
+				DAC_menu_refresh_waveType();
+    }
+    else if (strstr(p_subCmd, "get FSR") != NULL) {
+        USART_printf("[STS] DAC FSR: %d\r\n", DAC_get_FSR());
+    }
+    else if (strstr(p_subCmd, "get period") != NULL) {
+        USART_printf("[STS] DAC period: %d\r\n", DAC_get_period());
+    }
+    else if (strstr(p_subCmd, "get wave type") != NULL) {
+        USART_printf("[STS] DAC wave type: %s\r\n", waveType[DAC_get_waveType()]);
+    }
+    else {
+        USART_printf("[WRN] DAC command recognized, but missing valid action (set FSR/set period/get FSR/get period)!\r\n");
+    }
+}
+
+static void SYS_dispatch_command(char* p_subCmd) {
+    // TODO: Implement specific SYS parsing logic here
+    USART_printf("[SYS] SYS Sub-command received: %s\r\n", p_subCmd);
 }

@@ -8,8 +8,8 @@
 #define DAC_LUT_LENGTH 256U
 
 static uint16_t s_DACLUT[3][DAC_LUT_LENGTH];
-static uint32_t s_currFSR = 3300;
-static uint32_t s_currPeriod = 5000;
+static int16_t s_currFSR = 3300;
+static int16_t s_currPeriod = 5000;
 static uint64_t targetARR;
 
 static e_waveType_t s_waveMode = SINUSOIDAL;
@@ -107,6 +107,8 @@ static void DAC_restart_dma(void) {
 }
 
 void DAC_set_FSR(int16_t adjFSR) {
+	if (adjFSR < DAC_FSR_MIN) adjFSR = DAC_FSR_MIN;
+	if (adjFSR > DAC_FSR_MAX) adjFSR = DAC_FSR_MAX;
 	if (s_currFSR != adjFSR) {
 		s_currFSR = adjFSR;
 		DAC_wave_compute(s_DACLUT[s_waveMode], s_waveMode, s_currFSR);
@@ -114,6 +116,8 @@ void DAC_set_FSR(int16_t adjFSR) {
 }
 
 void DAC_set_period(int16_t adjPeriod) {
+	if (adjPeriod < DAC_PERIOD_MIN) adjPeriod = DAC_PERIOD_MIN;
+	if (adjPeriod > DAC_PERIOD_MAX) adjPeriod = DAC_PERIOD_MAX;
 	if (s_currPeriod != adjPeriod) {
 		s_currPeriod = adjPeriod;
 		DAC_set_waveform_period_ms(s_currPeriod);
@@ -127,6 +131,14 @@ void DAC_set_wave(e_waveType_t waveType) {
 		DAC_wave_compute(s_DACLUT[s_waveMode], s_waveMode, s_currFSR);
 		DAC_restart_dma();
 	}
+}
+
+int16_t DAC_get_FSR(void) {
+	return s_currFSR;
+}
+
+int16_t DAC_get_period(void) {
+	return s_currPeriod;
 }
 
 uint32_t DAC_get_ARR(void) {
