@@ -1,7 +1,6 @@
 #include <wavAnl_service.h>
 #include <waveform_analyzer.h>
 #include <ADC_service.h>
-#include <DAC_service.h>
 #include <USART_task.h>
 #include <memory_pool.h>
 #include "tim.h"
@@ -10,27 +9,9 @@
 #error "ADC_WINDOW_SIZE exceeds WAVE_MAX_LEN"
 #endif
 
-/* Settings that the analysis depends on. */
-typedef struct {
-    int16_t period;
-    int16_t FSR;
-    e_waveType_t waveType;
-    bool ratio;
-} wavAnl_config_t;
-
 static waveformInfo s_info = {.waveform_type = ADC_WAVEFORM_UNKNOWN};
 static bool s_has_result = false;
-static wavAnl_config_t s_resultCfg;
-
-static wavAnl_config_t wavAnl_current_config(void) {
-    wavAnl_config_t cfg = {
-        .period = DAC_get_period(),
-        .FSR = DAC_get_FSR(),
-        .waveType = DAC_get_waveType(),
-        .ratio = ADC_get_ratio(),
-    };
-    return cfg;
-}
+static uint32_t s_resultGen = 0;    /* 分析时的 ADC 窗口代数，代数变了说明结果已过期 */
 
 static float ADC_window_sample(void *ctx, uint32_t index) {
     const uint16_t *snap = ctx;
@@ -50,7 +31,7 @@ bool wavAnl_update(void) {
     uint32_t len = ADC_get_window_len();
     uint16_t *snap;
 
-    /* A failed attempt keeps the previous result; wavAnl_is_valid() decides whether it still applies. */
+    /* 失败时保留上一次的结果，是否还有效由 wavAnl_is_valid() 判断 */
     if (!ADC_is_window_ready()) {
         USART_printf("waveform: window not full, skip\r\n");
         return false;
@@ -68,7 +49,7 @@ bool wavAnl_update(void) {
     s_info = wave_analyze(ADC_window_sample, snap, len, wave_sample_interval_s());
     MP_free(snap);
     s_has_result = true;
-    s_resultCfg = wavAnl_current_config();
+    s_resultGen = ADC_get_generation();
     return true;
 }
 
@@ -108,12 +89,7 @@ void wavAnl_print(void) {
 }
 
 bool wavAnl_is_valid(void) {
-    if (!s_has_result) return false;
-    wavAnl_config_t cur = wavAnl_current_config();
-    return cur.period == s_resultCfg.period
-        && cur.FSR == s_resultCfg.FSR
-        && cur.waveType == s_resultCfg.waveType
-        && cur.ratio == s_resultCfg.ratio;
+    return s_has_result && s_resultGen == ADC_get_generation();
 }
 
 float wavAnl_get_freq(void) {

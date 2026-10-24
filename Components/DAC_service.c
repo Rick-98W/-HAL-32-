@@ -98,7 +98,14 @@ void DAC_wave_compute(uint16_t* p_buffer, e_waveType_t e_waveMode, uint32_t FSR)
 	}
 }
 
-static void DAC_restart_dma(void) {
+static DAC_change_cb_t s_changeCb = NULL;
+
+static void DAC_notify_change(void) {
+      if (s_changeCb != NULL) s_changeCb((uint32_t)targetARR);
+}
+
+static void DAC_restart_DMA(void) {
+      DAC_notify_change();
       HAL_TIM_Base_Stop(&htim6);
       HAL_DAC_Stop_DMA(&hdac, DAC_CHANNEL_1);
       HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t*)s_DACLUT[s_waveMode], DAC_LUT_LENGTH, DAC_ALIGN_12B_R);
@@ -111,6 +118,7 @@ void DAC_set_FSR(int16_t adjFSR) {
 	if (adjFSR > DAC_FSR_MAX) adjFSR = DAC_FSR_MAX;
 	if (s_currFSR != adjFSR) {
 		s_currFSR = adjFSR;
+			DAC_notify_change();
 		DAC_wave_compute(s_DACLUT[s_waveMode], s_waveMode, s_currFSR);
 	}
 }
@@ -121,7 +129,7 @@ void DAC_set_period(int16_t adjPeriod) {
 	if (s_currPeriod != adjPeriod) {
 		s_currPeriod = adjPeriod;
 		DAC_set_waveform_period_ms(s_currPeriod);
-		DAC_restart_dma();
+		DAC_restart_DMA();
 	}
 }
 
@@ -129,8 +137,13 @@ void DAC_set_wave(e_waveType_t waveType) {
 	if (s_waveMode != waveType) {
 		s_waveMode = waveType;
 		DAC_wave_compute(s_DACLUT[s_waveMode], s_waveMode, s_currFSR);
-		DAC_restart_dma();
+		DAC_restart_DMA();
 	}
+}
+
+void DAC_register_change_cb(DAC_change_cb_t fn_cb) {
+	s_changeCb = fn_cb;
+	if (fn_cb != NULL) fn_cb((uint32_t)targetARR);
 }
 
 int16_t DAC_get_FSR(void) {

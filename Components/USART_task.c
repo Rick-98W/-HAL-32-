@@ -2,7 +2,6 @@
 #include "usart.h"
 #include <LED_task.h>
 #include <DAC_service.h>
-#include <ADC_DAC_sync.h>
 #include <ADC_service.h>
 #include <wavAnl_service.h>
 #include <menu_ADC_suppl.h>
@@ -285,14 +284,19 @@ static void LED_dispatch_command(char* p_subCmd) {
     }
     else if (strstr(p_subCmd, "phase") != NULL) {
         char *p_scan = p_subCmd;
+        uint8_t phase_cnt = 0;
         while (*p_scan != '\0' && *p_scan != '\r' && *p_scan != '\n') {
             if (*p_scan >= '1' && *p_scan <= '6') {
                 int id = *p_scan - '0';
+                phase_cnt++;
                 float phase_val = LED_get_phaseOffset(id - 1);
                 USART_printf("[STS] LED%d Phase Offset: %.2f (%.0f%%)\r\n", 
                              id, phase_val, phase_val * 100.0f);
             }
             p_scan++;
+        }
+        if (phase_cnt == 0) {
+            USART_printf("[WRN] LED phase found, but no ID (1-6)!\r\n");
         }
     }
     else if (strstr(p_subCmd, "off") != NULL) {
@@ -357,10 +361,10 @@ static void ADC_dispatch_command(char* p_subCmd) {
         }
     }
     else if (strstr(p_subCmd, "wave export") != NULL) {
-        serial_export_ADC_wave();
+        ADC_wave_export_start();
     }
     else {
-        USART_printf("[WRN] ADC command recognized, but missing valid action (analyze/set ratio/get ratio/get freq/get period/get vpp/get type)!\r\n");
+        USART_printf("[WRN] ADC command recognized, but missing valid action (analyze/set ratio/get ratio/get freq/get period/get vpp/get type/wave export)!\r\n");
     }
 }
 
@@ -375,14 +379,18 @@ static const char* waveType[3] = {
 };
 
 static void DAC_cmd_strcmp(char* p_subCmd) {
+	if (strstr(p_subCmd, "sin") == NULL && strstr(p_subCmd, "tri") == NULL && strstr(p_subCmd, "saw") == NULL) {
+		USART_printf("[WRN] DAC wave type not recognized, use sin/tri/saw!\r\n");
+		return;
+	}
 	if (strstr(p_subCmd, "sin") != NULL) {
-		ADC_DAC_sync_set_wave(SINUSOIDAL);
+		DAC_set_wave(SINUSOIDAL);
 	}
 	else if (strstr(p_subCmd, "tri") != NULL) {
-		ADC_DAC_sync_set_wave(TRIANGULAR);
+		DAC_set_wave(TRIANGULAR);
 	}
 	else if (strstr(p_subCmd, "saw") != NULL) {
-		ADC_DAC_sync_set_wave(SAWTOOTH);
+		DAC_set_wave(SAWTOOTH);
 	}
 	USART_printf("[CMD] DAC wave type: %s\r\n", waveType[DAC_get_waveType()]);
 }
@@ -391,12 +399,12 @@ static void DAC_dispatch_command(char* p_subCmd) {
     long val;
 
     if (sscanf(p_subCmd, " set FSR %ld", &val) == 1) {
-        ADC_DAC_sync_set_FSR(DAC_clamp_int16(val));
+        DAC_set_FSR(DAC_clamp_int16(val));
         USART_printf("[CMD] DAC FSR: %d\r\n", DAC_get_FSR());
 				DAC_menu_refresh_FSR();
     }
     else if (sscanf(p_subCmd, " set period %ld", &val) == 1) {
-        ADC_DAC_sync_set_period(DAC_clamp_int16(val));
+        DAC_set_period(DAC_clamp_int16(val));
         USART_printf("[CMD] DAC period: %d\r\n", DAC_get_period());
 				DAC_menu_refresh_period();
     }
@@ -414,7 +422,7 @@ static void DAC_dispatch_command(char* p_subCmd) {
         USART_printf("[STS] DAC wave type: %s\r\n", waveType[DAC_get_waveType()]);
     }
     else {
-        USART_printf("[WRN] DAC command recognized, but missing valid action (set FSR/set period/get FSR/get period)!\r\n");
+        USART_printf("[WRN] DAC command recognized, but missing valid action (set FSR/set period/set wave type/get FSR/get period/get wave type)!\r\n");
     }
 }
 

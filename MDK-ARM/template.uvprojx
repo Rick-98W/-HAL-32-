@@ -1318,16 +1318,6 @@
               <FilePath>..\Components\DAC_service.h</FilePath>
             </File>
             <File>
-              <FileName>ADC_DAC_sync.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Components\ADC_DAC_sync.c</FilePath>
-            </File>
-            <File>
-              <FileName>ADC_DAC_sync.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\Components\ADC_DAC_sync.h</FilePath>
-            </File>
-            <File>
               <FileName>knob_task.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Components\knob_task.c</FilePath>

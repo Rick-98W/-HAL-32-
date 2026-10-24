@@ -2,7 +2,7 @@
 #include <menu_tmpl.h>
 #include <DAC_service.h>
 #include <ADC_service.h>
-#include <ADC_DAC_sync.h>
+#include <memory_pool.h>
 #include <serial_export_task.h>
 #include <wavAnl_service.h>
 #include <OLED_service.h>
@@ -36,9 +36,9 @@ static void DAC_waveType_disp_calibrate(void) {
 
 static void DAC_set_wave_enter(void) {DAC_waveType_disp_calibrate();}
 
-static void DAC_set_sinusodial(void) {ADC_DAC_sync_set_wave(SINUSOIDAL);}
-static void DAC_set_triangular(void) {ADC_DAC_sync_set_wave(TRIANGULAR);}
-static void DAC_set_sawtooth(void)	 {ADC_DAC_sync_set_wave(SAWTOOTH);}
+static void DAC_set_sinusodial(void) {DAC_set_wave(SINUSOIDAL);}
+static void DAC_set_triangular(void) {DAC_set_wave(TRIANGULAR);}
+static void DAC_set_sawtooth(void)	 {DAC_set_wave(SAWTOOTH);}
 
 
 static void ADC_ratio_disp_calibrate(void) {
@@ -56,13 +56,50 @@ static void ADC_get_wave_param(void) {
 	menu_ADC_param_enter();
 }
 
+/* 应用层适配：把 ADC 窗口拷贝成快照，交给通用的 serial_export 逐行输出。
+   快照由本文件持有，导出结束或启动失败时释放。 */
+static uint16_t *s_exportSnap = NULL;
+
+static uint16_t ADC_export_sample(void *ctx, uint32_t index) {
+	const uint16_t *snap = ctx;
+	return (uint16_t)ADC_raw_to_mv(snap[index]);
+}
+
+static void ADC_export_release(void) {
+	MP_free(s_exportSnap);
+	s_exportSnap = NULL;
+}
+
+void ADC_wave_export_start(void) {
+	uint32_t len = ADC_get_window_len();
+
+	if (serial_export_busy()) return;
+	if (!ADC_is_window_ready()) {
+		USART_printf("waveform: window not full, skip\r\n");
+		return;
+	}
+	s_exportSnap = MP_alloc(len * sizeof(uint16_t));
+	if (s_exportSnap == NULL) {
+		USART_printf("[ERR] memory allocate failed, export stopped\r\n");
+		return;
+	}
+	if (!ADC_snapshot(s_exportSnap, len)) {
+		USART_printf("waveform: snapshot failed, export stopped\r\n");
+		ADC_export_release();
+		return;
+	}
+	if (!serial_export_start(ADC_export_sample, s_exportSnap, len, ADC_export_release)) {
+		ADC_export_release();
+	}
+}
+
 void menu_ADC_suppl_init(menuItem_t *parent) {
 	//											NODE								NAME									PAGEID						NEXT									PREV									PARENT								CHILD								
 	menu_create_submenu(&s_DACSetFSR,					"DACSetFSR",					DACSetFSR,					&s_DACSetPeriod,			NULL,									parent,								NULL);
-	menu_bind_value(&s_DACSetFSR, &s_DACFSRView, DAC_FSR_MIN, DAC_FSR_MAX, menu_value_enter, ADC_DAC_sync_set_FSR);
+	menu_bind_value(&s_DACSetFSR, &s_DACFSRView, DAC_FSR_MIN, DAC_FSR_MAX, menu_value_enter, DAC_set_FSR);
 	
 	menu_create_submenu(&s_DACSetPeriod,			"DACSetPeriod",				DACSetPeriod,				&s_DACSetWave,				&s_DACSetFSR,					parent,								NULL);
-	menu_bind_value(&s_DACSetPeriod, &s_DACPeriodView, DAC_PERIOD_MIN, DAC_PERIOD_MAX, menu_value_enter, ADC_DAC_sync_set_period);
+	menu_bind_value(&s_DACSetPeriod, &s_DACPeriodView, DAC_PERIOD_MIN, DAC_PERIOD_MAX, menu_value_enter, DAC_set_period);
 	
 	menu_create_submenu(&s_DACSetWave,				"DACSetWave",					DACSetWave,					&s_ADCSetSamplFactor,	&s_DACSetPeriod,			parent,								&s_DACSetSINUSOIDAL);
 	menu_bind_enter(&s_DACSetWave, DAC_set_wave_enter);
@@ -81,7 +118,7 @@ void menu_ADC_suppl_init(menuItem_t *parent) {
 	menu_bind_action(&s_ADCSetDoubleSampl, ADC_set_double_sampling);
 	
 	menu_create_submenu(&s_ADCExport,					"ADCExport",					ADCExport,					&s_ADCWaveParam,			&s_ADCSetSamplFactor,	parent,								NULL);
-	menu_bind_action(&s_ADCExport, serial_export_ADC_wave);	
+	menu_bind_action(&s_ADCExport, ADC_wave_export_start);
 	
 	menu_create_submenu(&s_ADCWaveParam,			"ADCWaveParam",				ADCWaveParam,				NULL,									&s_ADCExport,					parent,								NULL);
 	menu_bind_action(&s_ADCWaveParam, ADC_get_wave_param);

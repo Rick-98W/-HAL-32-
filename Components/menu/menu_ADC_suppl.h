@@ -11,5 +11,6 @@ void DAC_menu_refresh_period(void);
 void DAC_menu_refresh_waveType(void);
 void ADC_menu_refresh_wave(void);
 void ADC_menu_refresh_ratio(void);
+void ADC_wave_export_start(void);
 
 #endif
