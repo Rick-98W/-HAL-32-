@@ -4,26 +4,16 @@
 #include <memory_pool.h>
 #include "stddef.h"
 
-typedef struct {
-	const uint16_t* buf;
-	uint32_t start;
-} ADC_wave_ctx_t;
-
 static serial_export_src_t s_src;
 static void *s_ctx;
 static serial_export_done_t s_done;
 static uint32_t s_count;
 static uint32_t s_idx;
 static bool s_busy = false;
-static ADC_wave_ctx_t s_ADC_wave;
-int16_t *s_LUT;
+static int16_t *s_LUT;
 
 bool serial_export_start(serial_export_src_t src, void *ctx, uint32_t count, serial_export_done_t on_done) {
-	if (s_busy) return false;
-	if (!ADC_is_window_ready()) {
-        USART_printf("waveform: window not full, skip\r\n");
-        return false;
-    }
+	if (s_busy || count == 0) return false;
 	s_src = src;
 	s_ctx = ctx;
 	s_count = count;
@@ -51,7 +41,7 @@ bool serial_export_busy(void) {
 void serial_export_proc(void) {
 	if (!s_busy) return;
 	if (s_idx < s_count) {
-		USART_printf("%d\n", (int)s_LUT[s_idx++]);
+		USART_printf("%d\r\n", (int)s_LUT[s_idx++]);
 		return;
 	}
 	MP_free(s_LUT);
@@ -60,15 +50,30 @@ void serial_export_proc(void) {
 }
 
 static uint16_t ADC_wave_sample(void *ctx, uint32_t index) {
-	const ADC_wave_ctx_t *wave = ctx;
-	return ADC_raw_to_mv(wave->buf[(wave->start + index) % ADC_WINDOW_SIZE]);
+	const uint16_t *snap = ctx;
+	return ADC_raw_to_mv(snap[index]);
 }
 
 void serial_export_ADC_wave(void) {
-	uint32_t len;
-	uint32_t start;
+	uint32_t len = ADC_get_window_len();
+	uint16_t *snap;
+
 	if (serial_export_busy()) return;
-	s_ADC_wave.buf = ADC_get_buffer(&len, &start);
-	s_ADC_wave.start = start;
-	serial_export_start(ADC_wave_sample, &s_ADC_wave, len, NULL);
+	if (!ADC_is_window_ready()) {
+		USART_printf("waveform: window not full, skip\r\n");
+		return;
+	}
+	snap = MP_alloc(len * sizeof(uint16_t));
+	if (snap == NULL) {
+		USART_printf("[ERR] memory allocate failed, export stopped\r\n");
+		return;
+	}
+	if (ADC_snapshot(snap, len)) {
+		/* serial_export_start 会同步把数据拷进 s_LUT，所以快照可以马上释放 */
+		serial_export_start(ADC_wave_sample, snap, len, NULL);
+	}
+	else {
+		USART_printf("waveform: snapshot failed, export stopped\r\n");
+	}
+	MP_free(snap);
 }

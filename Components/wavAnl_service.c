@@ -3,16 +3,12 @@
 #include <ADC_service.h>
 #include <DAC_service.h>
 #include <USART_task.h>
+#include <memory_pool.h>
 #include "tim.h"
 
 #if ADC_WINDOW_SIZE > WAVE_MAX_LEN
 #error "ADC_WINDOW_SIZE exceeds WAVE_MAX_LEN"
 #endif
-
-typedef struct {
-    const uint16_t *buf;
-    uint32_t start;
-} ADC_window_t;
 
 /* Settings that the analysis depends on. */
 typedef struct {
@@ -37,8 +33,8 @@ static wavAnl_config_t wavAnl_current_config(void) {
 }
 
 static float ADC_window_sample(void *ctx, uint32_t index) {
-    const ADC_window_t *win = ctx;
-    return (float)ADC_raw_to_mv(win->buf[(win->start + index) % ADC_WINDOW_SIZE]) * 0.001f;
+    const uint16_t *snap = ctx;
+    return (float)ADC_raw_to_mv(snap[index]) * 0.001f;
 }
 
 static float wave_sample_interval_s(void) {
@@ -51,26 +47,28 @@ static float wave_sample_interval_s(void) {
 }
 
 bool wavAnl_update(void) {
-    uint32_t len;
-    uint32_t start;
-    ADC_window_t win;
+    uint32_t len = ADC_get_window_len();
+    uint16_t *snap;
 
     /* A failed attempt keeps the previous result; wavAnl_is_valid() decides whether it still applies. */
     if (!ADC_is_window_ready()) {
         USART_printf("waveform: window not full, skip\r\n");
         return false;
     }
-    if (!ADC_freeze()) {
-        USART_printf("waveform: ADC busy, skip\r\n");
+    snap = MP_alloc(len * sizeof(uint16_t));
+    if (snap == NULL) {
+        USART_printf("[ERR] waveform: memory allocate failed, skip\r\n");
         return false;
     }
-    win.buf = ADC_get_buffer(&len, &start);
-    win.start = start;
-    float sample_interval_s = wave_sample_interval_s();
-    s_info = wave_analyze(ADC_window_sample, &win, len, sample_interval_s);
+    if (!ADC_snapshot(snap, len)) {
+        MP_free(snap);
+        USART_printf("waveform: snapshot failed, skip\r\n");
+        return false;
+    }
+    s_info = wave_analyze(ADC_window_sample, snap, len, wave_sample_interval_s());
+    MP_free(snap);
     s_has_result = true;
     s_resultCfg = wavAnl_current_config();
-    ADC_resume();
     return true;
 }
 

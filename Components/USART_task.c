@@ -28,7 +28,8 @@ static uint8_t s_RxDMABuffer[USART_RX_LINE_MAX];       // DMA д����
 
 // ����APP �õġ����ԡ��ݴ��� (��� RingBuffer �ؾ�����)
 static char s_RxAppBuffer[USART_RX_LINE_MAX];
-static uint16_t s_RxLineIdx = 0;                       // ָ��ƴ���α�
+static uint16_t s_RxLineIdx = 0;
+static uint8_t s_RxLineOverflow = 0;                   /* set when a line exceeds the max; the whole line is dropped */                       // ָ��ƴ���α�
 
 // 2. �������
 // RingBuffer ���ƿ����ڴ��
@@ -40,6 +41,9 @@ static uint8_t s_TxDMABuffer[USART_TX_DMA_SIZE];
 
 // ����״̬��־ (1: DMA����æ, 0: DMA����)
 static volatile uint8_t b_TxDMABusy = 0;
+
+// bytes dropped because the TX ring buffer was full (reported from USART_proc)
+static volatile uint32_t s_TxDropped = 0;
 
 /* --- Private Function Prototypes --- */
 static void USART_parse_command(char *cmd);
@@ -65,7 +69,12 @@ void USART_init(void)
 
 void USART_proc(void)
 {
-		if (USART_stream_load()){
+		if (s_TxDropped) {
+				uint32_t dropped = s_TxDropped;
+				s_TxDropped = 0;
+				USART_printf("[WRN] TX buffer full, %lu bytes dropped\r\n", (unsigned long)dropped);
+			}
+			if (USART_stream_load()){
 			USART_parse_command(s_RxAppBuffer);
 		}
 }
@@ -85,10 +94,14 @@ void USART_printf(const char* fmt, ...)
 
     // 2. ѹ�� RingBuffer (Critical Section)
     // ��Ϊ TxCpltCallback �ж���Ҳ����� RingBuffer (get)���������������жϱ��� put
+    uint32_t primask = __get_PRIMASK();
     __disable_irq();
-    
+
     // ʹ�ñ�׼ put�����˾Ͷ��������ݣ���֤��ȫ��
-    rt_ringbuffer_put(&s_TxRingCtrl, (uint8_t *)temp_buf, len);
+    rt_size_t put = rt_ringbuffer_put(&s_TxRingCtrl, (uint8_t *)temp_buf, len);
+    if (put < (rt_size_t)len) {
+        s_TxDropped += len - put;
+    }
 
     // 3. �����߼������ DMA �Ƿ���͵��
     if (b_TxDMABusy == 0)
@@ -97,7 +110,7 @@ void USART_printf(const char* fmt, ...)
         USART_trigger_TX();
     }
     
-    __enable_irq();
+    __set_PRIMASK(primask);
 }
 
 /* --- HAL Callback Override --- */
@@ -179,6 +192,12 @@ static uint8_t USART_stream_load(void)
         
         // 1. �������жϣ�����Э��ֺźʹ��ڹ��߳��õ� CR/LF
         if (ch == ';' || ch == '\n'){
+            if (s_RxLineOverflow) {
+                /* over-long line: discard it entirely, do not hand a truncated command to the parser */
+                s_RxLineOverflow = 0;
+                s_RxLineIdx = 0;
+                continue;
+            }
             s_RxAppBuffer[s_RxLineIdx] = '\0'; // ���
             s_RxLineIdx = 0; // ����
             return 1;        // �ɹ���
@@ -197,7 +216,7 @@ static uint8_t USART_stream_load(void)
         else {
             // ��������������ѡ��������������߶���������
             // ����򵥲��ԣ����ã�������һ��ָ������
-            s_RxLineIdx = 0; 
+            s_RxLineOverflow = 1;
         }
     }
     return 0; 
