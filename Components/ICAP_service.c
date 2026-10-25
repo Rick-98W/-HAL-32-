@@ -71,6 +71,7 @@ static void ICAP_parse_instance(ICAPInstance_t *p_instance) {
 	__enable_irq();
 	
 	if (!got_valid) return;
+	if (period == 0) return;
 
 	if (!p_instance->activeLevel) high = period - high;
 	float duty = high * 100.0f / period;
